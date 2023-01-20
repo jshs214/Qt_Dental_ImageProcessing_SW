@@ -9,6 +9,7 @@ QT_END_NAMESPACE
 
 class CephaloForm;
 class PanoramaForm;
+class PanoValueAdjustment;
 
 class MainWindow : public QMainWindow
 {
@@ -20,8 +21,8 @@ public:
 
     PanoramaForm *panoramaForm;    /* pano form */
     CephaloForm *cephaloForm;      /* ceph form */
+    PanoValueAdjustment* panoValueAdjustment;
 
-    void resizeEvent(QResizeEvent* event);
 private slots:
     void on_panoToolButton_clicked();
     void on_cephToolButton_clicked();

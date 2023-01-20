@@ -3,6 +3,7 @@
 
 #include "panoramaform.h"
 #include "cephaloform.h"
+#include "panovalueadjustment.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -18,10 +19,32 @@ MainWindow::MainWindow(QWidget *parent)
     connect(cephaloForm, SIGNAL(destroyed()),
             cephaloForm, SLOT(deleteLater()));
 
+    panoValueAdjustment = new PanoValueAdjustment(this);
+    connect(panoValueAdjustment, SIGNAL(destroyed()),
+            panoValueAdjustment, SLOT(deleteLater()));
+
+
     /* ui 설정 */
     ui->stackedWidget->insertWidget(0, panoramaForm);
     ui->stackedWidget->insertWidget(1, cephaloForm);
     ui->stackedWidget->setCurrentIndex(0);
+
+    /* Load 시, 밝기, 대조, 블러 이미지 경로 SIGNAL/SLOT */
+    connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
+            panoValueAdjustment, SLOT(receiveFile(QString)));
+
+    /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
+    connect(panoramaForm, SIGNAL(sendPanoBright(int)),
+             panoValueAdjustment, SLOT(changeBrightness(int)));
+    connect(panoramaForm, SIGNAL(sendPanoContrast(int)),
+             panoValueAdjustment, SLOT(changeContrast(int)));
+
+    /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
+    connect(panoValueAdjustment, SIGNAL(panoBrightPixmap(QPixmap&)),
+            panoramaForm, SLOT(receieveImg(QPixmap&)));
+    connect(panoValueAdjustment, SIGNAL(panoContrastPixmap(QPixmap&)),
+            panoramaForm, SLOT(receieveImg(QPixmap&)));
+
 
 }
 
@@ -31,21 +54,14 @@ MainWindow::~MainWindow()
     delete cephaloForm;
     delete ui;
 }
-void MainWindow::resizeEvent(QResizeEvent* event)
-{
-   QMainWindow::resizeEvent(event);
-   qDebug()<< size();
-   // Your code here.
-}
+
 void MainWindow::on_panoToolButton_clicked()
 {
     ui->stackedWidget->setCurrentIndex(0);
     ui->cephToolButton->setStyleSheet("");
     ui->panoToolButton->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);");
-
 }
-
 
 void MainWindow::on_cephToolButton_clicked()
 {

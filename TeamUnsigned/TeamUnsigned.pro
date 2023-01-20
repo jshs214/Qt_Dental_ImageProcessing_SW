@@ -13,13 +13,15 @@ SOURCES += \
     dentalimageview.cpp \
     main.cpp \
     mainwindow.cpp \
-    panoramaform.cpp
+    panoramaform.cpp \
+    panovalueadjustment.cpp
 
 HEADERS += \
     cephaloform.h \
     dentalimageview.h \
     mainwindow.h \
-    panoramaform.h
+    panoramaform.h \
+    panovalueadjustment.h
 
 FORMS += \
     cephaloform.ui \

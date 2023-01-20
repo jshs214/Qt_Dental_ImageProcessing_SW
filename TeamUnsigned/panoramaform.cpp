@@ -12,6 +12,8 @@
 #include <QIntValidator>
 #include <QMessageBox>
 
+#include <QTimer>
+
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
 
 unsigned char clip(int value, int min, int max)
@@ -35,11 +37,30 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
     QValidator *sbValidator = new QIntValidator(-4, 4, this);
     ui->sbLineEdit->setValidator(sbValidator);
 
-
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
 
     ui->verticalLayout_7->insertWidget(2, dentalImageView);
+
+    connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
+
+    /* Load Image SIGNAL/SLOT */
+    connect(dentalImageView, SIGNAL(send(QPixmap,QString)),
+            this, SLOT(receieveDefaultImg(QPixmap,QString)));
+    connect(this, SIGNAL(sendPanoView(QPixmap)),
+            dentalImageView, SLOT(receiveLoadImg(QPixmap)));
+
+    /* Reset PanoImage SIGNAL/SLOT */
+    connect(this, SIGNAL(sendResetPano(QPixmap&)),
+            dentalImageView, SLOT(receiveResetPano(QPixmap&)));
+
+    /* SaveSignal SIGNAL/SLOT */
+    connect(this, SIGNAL(savePanoSignal()),
+            dentalImageView, SLOT(receiveSavePano()));
+
+    /* panoimg save 하기위한 SIGNAL/SLOT */
+    connect(dentalImageView, SIGNAL(sendSave(QImage&)),
+            this, SLOT(panoImageSave(QImage&)));
 
 
 }
@@ -50,95 +71,18 @@ PanoramaForm::~PanoramaForm()
 }
 
 /********************************************************************************************/
-void PanoramaForm::dragEnterEvent(QDragEnterEvent* event)
-{
-    event->acceptProposedAction();
-}
-
-void PanoramaForm::dragMoveEvent(QDragMoveEvent* event)
-{
-    event->acceptProposedAction();
-}
-
-void PanoramaForm::dropEvent(QDropEvent* event)
-{
-    const QMimeData* mimeData = event->mimeData();
-    QPixmap pixmap;
-    //ui->imgLabel->clear();
-    if (mimeData->hasUrls())
-    {
-
-        QList<QUrl> paths = mimeData->urls();
-        foreach(QUrl path, paths) {
-            ui->pathLineEdit->setText(path.toLocalFile());
-            pixmap.load(path.toLocalFile());
-
-            if(!pixmap.isNull()) {
-               // ui->imgLabel->setPixmap(pixmap.scaled(imageWidth, imageHeight));
-
-                defaultImg = pixmap.scaled(imageWidth, imageHeight).toImage();
-            }
-        }
-    }
-}
-
-void PanoramaForm::on_filePushButton_clicked()
-{
-    QString filename = QFileDialog::getOpenFileName(this);
-    QPixmap pixmap;
-    if(filename.length()) {          // 파일이 존재한다면
-        file = new QFile(filename);
-        ui->pathLineEdit->setText(file->fileName());
-        pixmap.load(file->fileName());
-
-        if(!pixmap.isNull()) {
-            //ui->imgLabel->setPixmap(pixmap.scaled(imageWidth, imageHeight));
-            defaultImg = pixmap.scaled(imageWidth, imageHeight).toImage();
-        }
-    }
-}
-
-
-/********************************************************************************************/
-void PanoramaForm::changeBrightness(QImage &image, int value)
-{
-    for(int y=0; y < image.height(); y++){
-        for (int x=0; x < image.width(); x++){
-            QRgb rgb = image.pixel(x,y);
-            int r = LIMIT_UBYTE(qRed(rgb) + value);
-            int g = LIMIT_UBYTE(qGreen(rgb) + value);
-            int b = LIMIT_UBYTE(qBlue(rgb)+ value);
-            image.setPixelColor(x, y, QColor(r, g, b));
-        }
-    }
-}
-
-void PanoramaForm::changeContrast(QImage &image, int value)
-{
-    float contrast = (50.0+value)/50.0;
-    for(int y=0; y < image.height(); y++){
-        for (int x=0; x < image.width(); x++){
-            QRgb rgb = image.pixel(x,y);
-            float r = LIMIT_UBYTE(128 + contrast*(qRed(rgb) - 128));
-            float g = LIMIT_UBYTE(128 + contrast*(qGreen(rgb) - 128));
-            float b = LIMIT_UBYTE(128 + contrast*(qBlue(rgb) - 128));
-            image.setPixelColor(x, y, QColor(r, g, b));
-        }
-    }
-}
 
 QImage* PanoramaForm::sharpenFliter(const uchar* inimg, int value) {
 
     QImage* filteredImage = new QImage(imageWidth, imageHeight, QImage::Format_RGB32);
     unsigned char* outimg = filteredImage->bits();
 
-        float mask = -(value/4);
-        float median = value + 1;
-        float kernel[3][3] = { {0, mask, 0},
-                             {mask, median, mask},
-                             {0, mask, 0}};
+    float mask = -(value/4);
+    float median = value + 1;
+    float kernel[3][3] = { {0, mask, 0},
+                           {mask, median, mask},
+                           {0, mask, 0}};
 
-#if 1
     int arr[9] = {0};
     int elemSize = 4;
     int cnt = 0;
@@ -267,33 +211,6 @@ QImage* PanoramaForm::sharpenFliter(const uchar* inimg, int value) {
 
     return filteredImage;
 
-#else
-    int width = image.width();
-
-    for(int y=1; y < image.height()-1; y++){
-        for (int x=1; x < image.width()-1; x++){
-            int r=0, g=0, b=0;
-            int offset = 4*(x+(y*width));
-
-            for (int i = -1; i < 2; i++) {
-                for(int j = -1; j <2; j++) {
-
-                    QRgb rgb = image.pixel(x+i,y+j);
-                    //                    r += kernel[i+1][j+1]*qRed(rgb);
-                    //                    g += kernel[i+1][j+1]*qGreen(rgb);
-                    //                    b += kernel[i+1][j+1]*qBlue(rgb);
-                    r += kernel[i+1][j+1]* ( inimg[offset]);
-                    g += kernel[i+1][j+1]* ( inimg[offset + 1]);
-                    b += kernel[i+1][j+1]* ( inimg[offset + 2]);
-                }
-            }
-
-            //qDebug() << r << g << b << Qt::endl;
-            image.setPixelColor(x, y, QColor(LIMIT_UBYTE(r), LIMIT_UBYTE(g), LIMIT_UBYTE(b)));
-        }
-    }
-    qDebug()<< width;
-#endif
 }
 
 QImage* PanoramaForm::blurFilter(const uchar* inimg, int value) {
@@ -311,8 +228,8 @@ QImage* PanoramaForm::blurFilter(const uchar* inimg, int value) {
     }
 
     float kernel[3][3] = { {edge, mask, edge},
-                     {mask, median, mask},
-                     {edge, mask, edge}};
+                           {mask, median, mask},
+                           {edge, mask, edge}};
 
     int arr[9] = {0};
     int elemSize = 4;
@@ -443,15 +360,15 @@ QImage* PanoramaForm::blurFilter(const uchar* inimg, int value) {
     return filteredImage;
 }
 
-
 /********************************************************************************************/
 void PanoramaForm::on_brightSlider_valueChanged(int value)
 {
     QPixmap pixmap;
-    QImage image = defaultImg;
-    changeBrightness(image, value);
-    pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
-    //ui->imgLabel->setPixmap(pixmap);
+
+    if(ui->pathLineEdit->text() != "")
+    {
+        emit sendPanoBright(value);
+    }
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
 }
 
@@ -485,9 +402,9 @@ void PanoramaForm::on_contrastSlider_valueChanged(int value)
 {
     QPixmap pixmap;
     QImage image = defaultImg;
-    if (value > 0) changeContrast(image, value);
-    else changeContrast(image, value*0.5);
-    pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
+
+    emit sendPanoContrast(value);
+    //pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
     //ui->imgLabel->setPixmap(pixmap);
     ui->contrastLineEdit->setText( QString::number(ui->contrastSlider->value()) );
 }
@@ -520,6 +437,8 @@ void PanoramaForm::on_contrastLineEdit_textChanged(const QString &contrastString
 /********************************************************************************************/
 void PanoramaForm::on_sharpenButton_clicked()
 {
+    if(ui->pathLineEdit->text() == "")  return;
+
     sbValue = ui->sbSlider->value();
     sbValue--;
     if(sbValue < -4) return;
@@ -529,6 +448,8 @@ void PanoramaForm::on_sharpenButton_clicked()
 
 void PanoramaForm::on_blurButton_clicked()
 {
+    if(ui->pathLineEdit->text() == "")  return;
+
     sbValue = ui->sbSlider->value();
     sbValue++;
     if(sbValue > 4) return;
@@ -536,14 +457,11 @@ void PanoramaForm::on_blurButton_clicked()
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
 
-void PanoramaForm::on_sbLineEdit_textChanged(const QString &sbString)
-{
-    sbValue = sbString.toInt();
-    ui->sbSlider->setValue(sbValue);
-}
 
 void PanoramaForm::on_sbSlider_valueChanged(int value)
 {
+    if(ui->pathLineEdit->text() == "")  return;
+
     QPixmap pixmap;
     QImage image = defaultImg;
 
@@ -564,7 +482,7 @@ void PanoramaForm::on_preset_Button1_clicked()
     ui->preset_Button3->setStyleSheet("");
     ui->preset_Button4->setStyleSheet("");
     ui->preset_Button5->setStyleSheet("");
-        ui->preset_Button6->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
     ui->preset_Button1->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
@@ -578,7 +496,7 @@ void PanoramaForm::on_preset_Button2_clicked()
     ui->preset_Button3->setStyleSheet("");
     ui->preset_Button4->setStyleSheet("");
     ui->preset_Button5->setStyleSheet("");
-        ui->preset_Button6->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
     ui->preset_Button2->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
@@ -591,7 +509,7 @@ void PanoramaForm::on_preset_Button3_clicked()
     ui->preset_Button2->setStyleSheet("");
     ui->preset_Button4->setStyleSheet("");
     ui->preset_Button5->setStyleSheet("");
-        ui->preset_Button6->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
     ui->preset_Button3->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
@@ -604,7 +522,7 @@ void PanoramaForm::on_preset_Button4_clicked()
     ui->preset_Button2->setStyleSheet("");
     ui->preset_Button3->setStyleSheet("");
     ui->preset_Button5->setStyleSheet("");
-        ui->preset_Button6->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
     ui->preset_Button4->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
@@ -646,19 +564,89 @@ void PanoramaForm::on_resetButton_clicked()
     ui->preset_Button5->setStyleSheet("");
     ui->preset_Button6->setStyleSheet("");
 
-    defaultImg = tempImg;
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+
     QPixmap pixmap;
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
-    //ui->imgLabel->setPixmap(pixmap);
+    emit sendResetPano(pixmap);
+
 }
 
 
 void PanoramaForm::on_imageSaveButton_clicked()
 {
-    tempImg = defaultImg;
-    //defaultImg=ui->imgLabel->pixmap().toImage();
-    QMessageBox::information(this, "Success", "Image Setting Saves!");
+    //QMessageBox::information(this, "Success", "Image Setting Saves!");
+    emit savePanoSignal();
+
+}
+void PanoramaForm::on_filePushButton_clicked()
+{
+    QString filename = QFileDialog::getOpenFileName(this);
+
+    QPixmap pixmap;
+
+    if(filename.length()) {          // 파일이 존재한다면
+        file = new QFile(filename);
+        pixmap.load(file->fileName());
+        emit sendPanoAdj(file->fileName());
+
+        QStringList nameStr = file->fileName().split("/").last().split(".");
+        QString fileName = nameStr.first();
+        ui->pathLineEdit->setText(fileName);
+
+        if(!pixmap.isNull()) {
+            emit sendPanoView(pixmap);
+            ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
+            defaultImg = pixmap.toImage();
+        }
+    }
+    file->close();
+    delete file;
 }
 
+void PanoramaForm::receieveDefaultImg(QPixmap pixmap, QString file)
+{
+    ui->pathLineEdit->clear();
 
+    defaultImg = pixmap.toImage();
+    emit sendPanoAdj(file);
 
+    ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
+
+    QStringList nameStr = file.split("/").last().split(".");
+    QString fileName = nameStr.first();
+    ui->pathLineEdit->setText(fileName);
+}
+
+void PanoramaForm::text(QPixmap &pixmap)
+{
+    ui->panoImgLabel->setPixmap(QPixmap());
+    ui->panoImgLabel->setPixmap(pixmap.scaled(1000, 600));
+}
+
+void PanoramaForm::receieveImg(QPixmap& pixmap)
+{
+    emit sendPanoView(pixmap);
+}
+
+void PanoramaForm::panoImageSave(QImage& saveimg)
+{
+    QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
+                                                    "Image File(*.jpg *.bmp *.raw *.png)");
+    QFile * file = new QFile(filename);
+    file->open(QIODevice::WriteOnly | QIODevice::Text);
+    QFileInfo fileInfo(filename);
+
+    if(fileInfo.isWritable()){
+        saveimg.save(filename);
+    }
+    else {
+        QMessageBox::warning(this, "Error", "Can't Save this file", QMessageBox::Ok);
+    }
+
+    file->close();
+    delete file;
+
+}
