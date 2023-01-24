@@ -13,18 +13,17 @@ public:
 
 private:
     QPixmap pixmap;
-    QImage  defaultImg, prevImg;
+    QImage  defaultImg;
 
     int dentalViewWidth = 1000;
     int dentalViewHeight = 600;
 
 private slots:
     void receiveFile(QString);
-    void changeBrightness(int value);
-    void changeContrast(int value);
+    void changePanoValue(int, int);
+
 signals:
-    void panoBrightPixmap(QPixmap&);
-    void panoContrastPixmap(QPixmap&);
+    void panoImgSend(QPixmap&);
 };
 
 #endif // PANOVALUEADJUSTMENT_H

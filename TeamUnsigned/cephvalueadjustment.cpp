@@ -1,23 +1,23 @@
-#include "panovalueadjustment.h"
+#include "cephvalueadjustment.h"
 #include "qdebug.h"
 
 #include <QImage>
 
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
 
-PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
+CephValueAdjustment::CephValueAdjustment(QObject *parent)
     : QObject{parent}
 {
 
 }
 
-void PanoValueAdjustment::receiveFile(QString file)
+void CephValueAdjustment::receiveFile(QString file)
 {
     pixmap.load(file);
     defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 }
 
-void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue)
+void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue)
 {
     QImage image = defaultImg;
 
@@ -94,6 +94,7 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue)
     }
 
     pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
-    emit panoImgSend(pixmap);
+    emit cephImgSend(pixmap);
+    qDebug()<<__LINE__ << brightValue << contrastValue;
 }
 

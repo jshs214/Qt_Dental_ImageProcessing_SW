@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1558</width>
+    <width>1200</width>
     <height>900</height>
    </rect>
   </property>
@@ -32,14 +32,14 @@
    <string notr="true">QWidget{
 background-color: rgb(31,31,31);
 color: rgb(184,191,200);
-border:none;
+border: none;
 }
 QToolButton{
 color: rgb(184,191,200);
 }
 QToolButton:hover
 {
-  border: 2px solid red;
+border: 2px solid red;
 background-color: rgb(103, 104, 114);
 }
 QToolButton:pressed
@@ -51,18 +51,17 @@ QLineEdit{
 border: 2px solid rgb(184,191,200);
 color: rgb(184,191,200);
 font: 14pt &quot;맑은 고딕&quot;;
-
 }
 QLabel{
 color: rgb(184,191,200);
-font: 14pt &quot;맑은 고딕&quot;;
+font: 16pt &quot;휴먼매직체&quot;;
 QLabel::setAlignment (Qt::AlignVCenter );
 QLabel::setAlignment (Qt::AlignHCenter );
 }
 QPushButton{
 color: rgb(184,191,200);
 background-color: rgb(10, 21, 49);
-font: 14pt &quot;맑은 고딕&quot;;
+font: 700 16pt &quot;맑은 고딕&quot;;
 border: 1px solid rgb(184,191,200);
 border-radius: 3px;
 }
@@ -293,7 +292,7 @@ border: 1px solid gray;</string>
         </spacer>
        </item>
        <item>
-        <widget class="QProgressBar" name="progressBar">
+        <widget class="QProgressBar" name="panoProgressBar">
          <property name="minimumSize">
           <size>
            <width>720</width>
@@ -304,7 +303,7 @@ border: 1px solid gray;</string>
           <string notr="true"/>
          </property>
          <property name="value">
-          <number>24</number>
+          <number>0</number>
          </property>
         </widget>
        </item>
@@ -328,7 +327,7 @@ border: 1px solid gray;</string>
           <string notr="true">font: 12pt &quot;맑은 고딕&quot;;</string>
          </property>
          <property name="text">
-          <string>Working...</string>
+          <string>To set the image, click the load button or drag and drop .</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -1058,6 +1057,9 @@ background-color: rgb(103, 104, 114);
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
+               </property>
+               <property name="readOnly">
+                <bool>true</bool>
                </property>
                <property name="placeholderText">
                 <string>50</string>

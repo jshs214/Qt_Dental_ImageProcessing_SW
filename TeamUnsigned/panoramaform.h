@@ -46,9 +46,9 @@ private slots:
     void on_preset_Button3_clicked();
     void on_preset_Button4_clicked();
     void on_preset_Button5_clicked();
+    void on_preset_Button6_clicked();
 
     void on_resetButton_clicked();
-    void on_preset_Button6_clicked();
 
     void receieveDefaultImg(QPixmap, QString);
     void text(QPixmap&);
@@ -75,10 +75,9 @@ private:
 
 signals:
     void sendPanoView(QPixmap);
-
     void sendPanoAdj(QString);
-    void sendPanoBright(int);
-    void sendPanoContrast(int);
+
+    void sendPanoValue(int, int);
 
     void sendResetPano(QPixmap&);
     void savePanoSignal();

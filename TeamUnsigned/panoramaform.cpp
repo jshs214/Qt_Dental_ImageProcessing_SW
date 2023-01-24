@@ -12,8 +12,6 @@
 #include <QIntValidator>
 #include <QMessageBox>
 
-#include <QTimer>
-
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
 
 unsigned char clip(int value, int min, int max)
@@ -39,6 +37,8 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
 
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
+
+    dentalImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
 
     ui->verticalLayout_7->insertWidget(2, dentalImageView);
 
@@ -361,13 +361,14 @@ QImage* PanoramaForm::blurFilter(const uchar* inimg, int value) {
 }
 
 /********************************************************************************************/
-void PanoramaForm::on_brightSlider_valueChanged(int value)
+void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
 {
     QPixmap pixmap;
 
     if(ui->pathLineEdit->text() != "")
     {
-        emit sendPanoBright(value);
+        int contrastValue = ui->contrastSlider->value();
+        emit sendPanoValue(brightValue , contrastValue);
     }
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
 }
@@ -398,14 +399,18 @@ void PanoramaForm::on_brightLineEdit_textChanged(const QString &brightString)
 
 
 /********************************************************************************************/
-void PanoramaForm::on_contrastSlider_valueChanged(int value)
+void PanoramaForm::on_contrastSlider_valueChanged(int contrastValue)
 {
     QPixmap pixmap;
     QImage image = defaultImg;
 
-    emit sendPanoContrast(value);
-    //pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
-    //ui->imgLabel->setPixmap(pixmap);
+    int brightValue = ui->brightSlider->value();
+
+    if(ui->pathLineEdit->text() != "")
+    {
+        emit sendPanoValue(brightValue , contrastValue);
+    }
+
     ui->contrastLineEdit->setText( QString::number(ui->contrastSlider->value()) );
 }
 
@@ -469,7 +474,7 @@ void PanoramaForm::on_sbSlider_valueChanged(int value)
     else if (value < 0) image = *blurFilter(image.bits(), value);
 
     pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
-    //ui->imgLabel->setPixmap(pixmap);
+
     ui->sbLineEdit->setText( QString::number(ui->sbSlider->value()) );
 }
 
@@ -577,10 +582,9 @@ void PanoramaForm::on_resetButton_clicked()
 
 void PanoramaForm::on_imageSaveButton_clicked()
 {
-    //QMessageBox::information(this, "Success", "Image Setting Saves!");
     emit savePanoSignal();
-
 }
+
 void PanoramaForm::on_filePushButton_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(this);
@@ -604,6 +608,9 @@ void PanoramaForm::on_filePushButton_clicked()
     }
     file->close();
     delete file;
+
+    ui->panoProgressBar->setValue(100);
+    ui->progressbarLabel->setText("Success Load Image !!!");
 }
 
 void PanoramaForm::receieveDefaultImg(QPixmap pixmap, QString file)

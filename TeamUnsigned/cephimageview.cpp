@@ -1,12 +1,12 @@
-#include "dentalimageview.h"
-#include "qevent.h"
+#include "cephimageview.h"
 
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QFile>
 #include <QFileDialog>
 
-DentalImageView::DentalImageView()
+CephImageView::CephImageView(QWidget *parent)
+    : QWidget{parent}
 {
     setAcceptDrops(true);   //Drag & Drop true
 
@@ -42,7 +42,7 @@ DentalImageView::DentalImageView()
     });
 }
 
-void DentalImageView::scaleImage(double factor)
+void CephImageView::scaleImage(double factor)
 {
     m_scaleFactor *= factor;
     m_scaleLabel.setText(QStringLiteral("%1%").arg(m_scaleFactor*100, 0, 'f', 1));
@@ -50,17 +50,17 @@ void DentalImageView::scaleImage(double factor)
     m_imageLabel->resize(size);
 }
 /********************************************************************************************/
-void DentalImageView::dragEnterEvent(QDragEnterEvent* event)
+void CephImageView::dragEnterEvent(QDragEnterEvent* event)
 {
     event->acceptProposedAction();
 }
 
-void DentalImageView::dragMoveEvent(QDragMoveEvent* event)
+void CephImageView::dragMoveEvent(QDragMoveEvent* event)
 {
     event->acceptProposedAction();
 }
 
-void DentalImageView::dropEvent(QDropEvent* event)
+void CephImageView::dropEvent(QDropEvent* event)
 {
     const QMimeData* mimeData = event->mimeData();
 
@@ -88,7 +88,7 @@ void DentalImageView::dropEvent(QDropEvent* event)
 }
 
 /* panoramaForm 에서 로드 버튼 클릭 시 or 연산 후,  뷰로 픽스맵 데이터 전송하는 함수. */
-void DentalImageView::receiveLoadImg(QPixmap pixmap)
+void CephImageView::receiveLoadImg(QPixmap pixmap)
 {
     m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
     scaleImage(1.0);
@@ -97,15 +97,17 @@ void DentalImageView::receiveLoadImg(QPixmap pixmap)
 
 }
 
-void DentalImageView::receiveResetPano(QPixmap& pixmap)
+void CephImageView::receiveResetCeph(QPixmap& pixmap)
 {
     m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
     scaleImage(1.0);
+    qDebug()<< __FUNCTION__ << __LINE__;
 }
 
-void DentalImageView::receiveSavePano()
+void CephImageView::receiveSaveCeph()
 {
     emit sendSave(prevImg);
-
 }
+
+
 

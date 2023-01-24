@@ -10,6 +10,8 @@ CONFIG += c++17
 
 SOURCES += \
     cephaloform.cpp \
+    cephimageview.cpp \
+    cephvalueadjustment.cpp \
     dentalimageview.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -18,6 +20,8 @@ SOURCES += \
 
 HEADERS += \
     cephaloform.h \
+    cephimageview.h \
+    cephvalueadjustment.h \
     dentalimageview.h \
     mainwindow.h \
     panoramaform.h \

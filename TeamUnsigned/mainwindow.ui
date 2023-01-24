@@ -7,13 +7,25 @@
     <x>0</x>
     <y>0</y>
     <width>1400</width>
-    <height>950</height>
+    <height>955</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
     <width>1400</width>
-    <height>950</height>
+    <height>955</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1400</width>
+    <height>955</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -28,10 +40,11 @@ background-color: rgb(31,31,31);
 }
 QToolButton{
 color: rgb(184,191,200);
+border: 1px solid rgb(184,191,200);
 }
 QToolButton:hover
 {
-  border: 2px solid red;
+border: 2px solid red;
 background-color: rgb(103, 104, 114);
 }
 QToolButton:pressed
