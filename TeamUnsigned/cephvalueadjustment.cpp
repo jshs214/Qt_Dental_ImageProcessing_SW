@@ -77,7 +77,6 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue)
                 }
             }
         }
-
         else {
             contrastValue *= 0.5;
             float contrast = (50.0+contrastValue)/50.0;
@@ -95,6 +94,5 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue)
 
     pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
     emit cephImgSend(pixmap);
-    qDebug()<<__LINE__ << brightValue << contrastValue;
 }
 

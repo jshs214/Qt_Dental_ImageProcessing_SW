@@ -39,8 +39,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoValueAdjustment, SLOT(receiveFile(QString)));
     /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoValue(int, int)),
-            panoValueAdjustment, SLOT(changePanoValue(int, int)));
+    connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int)),
+            panoValueAdjustment, SLOT(changePanoValue(int, int, int)));
+
     /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));

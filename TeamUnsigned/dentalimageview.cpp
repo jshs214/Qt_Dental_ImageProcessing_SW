@@ -106,6 +106,5 @@ void DentalImageView::receiveResetPano(QPixmap& pixmap)
 void DentalImageView::receiveSavePano()
 {
     emit sendSave(prevImg);
-
 }
 

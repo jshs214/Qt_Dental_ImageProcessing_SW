@@ -35,7 +35,7 @@ CephImageView::CephImageView(QWidget *parent)
 
     connect(&m_zoomReset, &QPushButton::clicked, [this]{
         if(m_scaleFactor != 1){
-            m_imageLabel->resize(dentalViewWidth,dentalViewHeight);
+            m_imageLabel->resize(cephViewWidth, cephViewHeight);
             m_scaleFactor=1;
             m_scaleLabel.setText("100.0%");
         }
@@ -76,7 +76,7 @@ void CephImageView::dropEvent(QDropEvent* event)
             QString fileName = path.toLocalFile();
 
             if(!pixmap.isNull()) {
-                m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
+                m_imageLabel->setPixmap(pixmap.scaled(cephViewWidth, cephViewHeight));
                 scaleImage(1.0);
 
                 emit send(pixmap, fileName);
@@ -90,16 +90,16 @@ void CephImageView::dropEvent(QDropEvent* event)
 /* panoramaForm 에서 로드 버튼 클릭 시 or 연산 후,  뷰로 픽스맵 데이터 전송하는 함수. */
 void CephImageView::receiveLoadImg(QPixmap pixmap)
 {
-    m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
+    m_imageLabel->setPixmap(pixmap.scaled(cephViewWidth, cephViewHeight));
     scaleImage(1.0);
 
-    prevImg = pixmap.scaled(panoWidth, panoHeight).toImage();
+    prevImg = pixmap.scaled(cephWidth, cephHeight).toImage();
 
 }
 
 void CephImageView::receiveResetCeph(QPixmap& pixmap)
 {
-    m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
+    m_imageLabel->setPixmap(pixmap.scaled(cephViewWidth, cephViewHeight));
     scaleImage(1.0);
     qDebug()<< __FUNCTION__ << __LINE__;
 }

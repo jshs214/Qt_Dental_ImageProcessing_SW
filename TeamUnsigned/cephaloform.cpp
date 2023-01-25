@@ -20,8 +20,6 @@ CephaloForm::CephaloForm(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    imageWidth = 1125 ,imageHeight = 611;
-
     // 정수형 0~100까지만 입력가능한 QValidator 정의
     QValidator *validator = new QIntValidator(-100, 100, this);
     // lineEdit에 validator 설정
@@ -43,6 +41,7 @@ CephaloForm::CephaloForm(QWidget *parent) :
     /* Load Image SIGNAL/SLOT */
     connect(cephImageView, SIGNAL(send(QPixmap,QString)),
             this, SLOT(receieveDefaultImg(QPixmap,QString)));
+
     connect(this, SIGNAL(sendCephView(QPixmap)),
             cephImageView, SLOT(receiveLoadImg(QPixmap)));
 
@@ -290,10 +289,31 @@ void CephaloForm::on_filePushButton_clicked()
             emit sendCephView(pixmap);
             ui->cephImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
             defaultImg = pixmap.toImage();
+
+            ui->ceph_ProgressBar->setValue(100);
+            ui->progressbarLabel->setText("Success Load Cephalo Image !!!");
         }
+        file->close();
+        delete file;
     }
-    file->close();
-    delete file;
+    else {
+        QMessageBox::warning(this, "Error", "Can't Load this file", QMessageBox::Ok); ;
+        return;
+    }
+
+
+    ui->ceph_Preset_Button1->setStyleSheet("");
+    ui->ceph_Preset_Button2->setStyleSheet("");
+    ui->ceph_Preset_Button3->setStyleSheet("");
+    ui->ceph_Preset_Button4->setStyleSheet("");
+    ui->ceph_Preset_Button5->setStyleSheet("");
+    ui->ceph_Preset_Button6->setStyleSheet("");
+
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+
+
 }
 void CephaloForm::receieveDefaultImg(QPixmap pixmap, QString file)
 {
@@ -303,6 +323,8 @@ void CephaloForm::receieveDefaultImg(QPixmap pixmap, QString file)
     emit sendCephAdj(file);
 
     ui->cephImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
+    ui->ceph_ProgressBar->setValue(100);
+    ui->progressbarLabel->setText("Success Load Cephalo Image !!!");
 
     QStringList nameStr = file.split("/").last().split(".");
     QString fileName = nameStr.first();
@@ -312,7 +334,7 @@ void CephaloForm::receieveDefaultImg(QPixmap pixmap, QString file)
 void CephaloForm::text(QPixmap &pixmap)
 {
     ui->cephImgLabel->setPixmap(QPixmap());
-    ui->cephImgLabel->setPixmap(pixmap.scaled(1000, 600));
+    ui->cephImgLabel->setPixmap(pixmap.scaled(750, 600));
 }
 
 void CephaloForm::receieveImg(QPixmap& pixmap)

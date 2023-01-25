@@ -20,7 +20,7 @@ private:
 
 private slots:
     void receiveFile(QString);
-    void changePanoValue(int, int);
+    void changePanoValue(int, int, int);
 
 signals:
     void panoImgSend(QPixmap&);

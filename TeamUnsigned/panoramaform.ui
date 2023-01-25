@@ -54,14 +54,14 @@ font: 14pt &quot;맑은 고딕&quot;;
 }
 QLabel{
 color: rgb(184,191,200);
-font: 16pt &quot;휴먼매직체&quot;;
+font: 14pt &quot;맑은 고딕&quot;;
 QLabel::setAlignment (Qt::AlignVCenter );
 QLabel::setAlignment (Qt::AlignHCenter );
 }
 QPushButton{
 color: rgb(184,191,200);
 background-color: rgb(10, 21, 49);
-font: 700 16pt &quot;맑은 고딕&quot;;
+font: 14pt &quot;맑은 고딕&quot;;
 border: 1px solid rgb(184,191,200);
 border-radius: 3px;
 }
@@ -1272,9 +1272,15 @@ background-color: rgb(103, 104, 114);
        </item>
        <item>
         <widget class="QLabel" name="panoImgLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
+           <width>340</width>
            <height>287</height>
           </size>
          </property>

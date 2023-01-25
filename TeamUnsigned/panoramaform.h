@@ -21,8 +21,6 @@ public:
     explicit PanoramaForm(QWidget *parent = nullptr);
     ~PanoramaForm();
 protected:
-    QImage* sharpenFliter(const uchar*, int);
-    QImage* blurFilter(const uchar*, int);
 
 private slots:
     void on_filePushButton_clicked();
@@ -77,7 +75,7 @@ signals:
     void sendPanoView(QPixmap);
     void sendPanoAdj(QString);
 
-    void sendPanoValue(int, int);
+    void sendPanoValue(int, int, int);  //밝기, 대조, 필터 값
 
     void sendResetPano(QPixmap&);
     void savePanoSignal();

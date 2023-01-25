@@ -29,11 +29,11 @@ protected:
     void dropEvent(QDropEvent* event) override;
 
 private:
-    int dentalViewWidth = 1000;
-    int dentalViewHeight = 600;
+    int cephViewWidth = 800;
+    int cephViewHeight = 600;
 
-    int panoWidth = 3000;
-    int panoHeight = 1628;
+    int cephWidth = 3000;
+    int cephHeight = 2400;
 
 private slots:
     void receiveLoadImg(QPixmap);
