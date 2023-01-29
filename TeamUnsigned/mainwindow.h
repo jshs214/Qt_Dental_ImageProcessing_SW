@@ -12,6 +12,9 @@ class PanoramaForm;
 class PanoValueAdjustment;
 class CephValueAdjustment;
 
+class PanoSharpenType;
+class PanoPreset;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -24,6 +27,8 @@ public:
     CephaloForm *cephaloForm;      /* ceph form */
     PanoValueAdjustment* panoValueAdjustment;
     CephValueAdjustment* cephValueAdjustment;
+    PanoSharpenType* panoSharpenType;
+    PanoPreset* panoPreset;
 
 private slots:
     void on_panoToolButton_clicked();

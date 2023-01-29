@@ -56,11 +56,12 @@ private slots:
 
     void panoImageSave(QImage&);
 
+
 private:
     Ui::PanoramaForm *ui;
     QFile* file;
     QImage defaultImg;
-
+    QPixmap defaultPixmap, prevPixmap;
     DentalImageView* dentalImageView;
 
     int imageWidth;
@@ -79,6 +80,8 @@ signals:
 
     void sendResetPano(QPixmap&);
     void savePanoSignal();
+
+    void sendPanoPreset(QPixmap&, int);
 
 };
 

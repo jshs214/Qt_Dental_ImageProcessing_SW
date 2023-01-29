@@ -9,9 +9,10 @@ BlurSharpenMask::BlurSharpenMask(int width, int height)
 {
     this->width = width;
     this->height = height;
-    filteredImage = new QImage(width, height, QImage::Format_RGB32);
+    filteredImage = new QImage(width, height, QImage::Format_Grayscale8);
     outimg = filteredImage->bits();
 }
+
 QImage* BlurSharpenMask::sharpen(const uchar* inimg, int value)
 {
     float mask = -(value/4);
@@ -21,128 +22,126 @@ QImage* BlurSharpenMask::sharpen(const uchar* inimg, int value)
                            {0, mask, 0}};
 
     int arr[9] = {0};
-    int elemSize = 4;
-    int cnt = 0;
-    int size = width * elemSize;
 
-    for(int y = 0; y < height ; y++) {
-        for(int x = 0; x < width * elemSize; x+=elemSize) {
-            for(int z = 0; z < elemSize; z++) {
-                if(x==0){
-                    //LeftUpVertex
-                    if(y==0){
-                        arr[0] = arr[1] = arr[3] = arr[4] = inimg[x+(y*size)+z];
-                        arr[2] = arr[5] = inimg[x+elemSize + (y*size)+z];
-                        arr[6] = arr[7] = inimg[x+ ((y+1)*size) +z];
-                        arr[8] = inimg[x+elemSize+((y+1)*size)+z];
-                    }
-                    //LeftDownVertex
-                    else if(y==height-1){
-                        arr[0] = arr[1] =inimg[x+((y-1)*size)+z];
-                        arr[2] = inimg[x+elemSize + ((y-1)*size)+z];
-                        arr[3] = arr[6] = arr[7] = arr[4] = inimg[x+(y*size) +z];
-                        arr[8] = arr[5] = inimg[x+elemSize + (y*size) +z];
-                    }
-                    else{
-                        arr[0] = arr[1] = inimg[x+( (y-1)*size) +z];
-                        arr[2] = inimg[x+elemSize+( (y-1)*size) +z];
-                        arr[3] = arr[4] = inimg[x+(y*size)+z];
-                        arr[5] = inimg[x+elemSize+(y*size)+z];
-                        arr[6] = arr[7] = inimg[x+ ( (y+1)*size) +z];
-                        arr[8] = inimg[x+elemSize+( (y+1)*size) +z];
-                    }
+    int imageSize = width * height;
 
-                    cnt=0;
-                    float sum = 0.0;
-                    for(int i = -1; i < 2; i++) {
-                        for(int j = -1; j < 2; j++) {
-                            sum += kernel[i+1][j+1]*arr[cnt++];
-                        }
-                    }
-                    outimg[(x+y*size)+z] = LIMIT_UBYTE(sum);
-                }
+    int widthCnt = 0, heightCnt = -1, cnt = 0;
+    for(int i = 0; i < imageSize; i ++){
+        widthCnt = i % width;
+        if(i % width == 0) heightCnt++;
 
-                else if( x==(width*elemSize -elemSize) ){
-                    //RightUpVertex
-                    if(y==0){
-                        arr[0] = arr[3] = inimg[x-elemSize + (y*size) +z];
-                        arr[1] = arr[2] = arr[5] = arr[4] = inimg[x + (y*size) +z];
-                        arr[6] = inimg[x-elemSize + ((y-1)*size) +z];
-                        arr[7] = arr[8] = inimg[x+((y+1)*size)+z];
-                    }
-                    //RightDownVertex
-                    else if(y==height-1){
-                        arr[0] = inimg[x-elemSize + ((y-1)*size) +z];
-                        arr[1] = arr[2] = inimg[x-elemSize +((y-1)*size) +z];
-                        arr[3] = arr[6] = inimg[x-elemSize+(y*size)+z];
-                        arr[4] = arr[5] = arr[7] = arr[8] = inimg[x+(y*size)+z];
-                    }
-                    else{
-                        arr[0] = inimg[x-elemSize + ((y-1)*size) +z];
-                        arr[2] = arr[1] = inimg[x + ((y-1)*size) +z];
-                        arr[3] = inimg[x-elemSize + (y*size) +z];
-                        arr[5] = arr[4] = inimg[x+(y*size) +z];
-                        arr[6] = inimg[x-elemSize + ((y+1)*size) +z];
-                        arr[8] = arr[7] = inimg[x+((y+1)*size) +z];
-                    }
-                    cnt=0;
-                    float sum = 0.0;
-                    for(int i = -1; i < 2; i++) {
-                        for(int j = -1; j < 2; j++) {
-                            sum += kernel[i+1][j+1]*arr[cnt++];
-                        }
-                    }
-                    outimg[(x+y*size)+z] = LIMIT_UBYTE(sum);
-                }
-                else if(y==0){
-                    if( x!=1 && x!=size-elemSize ){
-                        arr[0] = arr[3] = inimg[x-elemSize+(y*size) +z];
-                        arr[1] = arr[4] = inimg[x+(y*size)+z];
-                        arr[2] = arr[5] = inimg[x+elemSize+(y*size) +z];
-                        arr[6] = inimg[x-elemSize+((y+1)*size) +z];
-                        arr[7] = inimg[x+((y+1)*size) +z];
-                        arr[8] = inimg[x+elemSize + ((y+1)*size) +z];
-
-                        cnt=0;
-                        float sum = 0.0;
-                        for(int i = -1; i < 2; i++) {
-                            for(int j = -1; j < 2; j++) {
-                                sum += kernel[i+1][j+1]*arr[cnt++];
-                            }
-                        }
-                        outimg[(x+y*size)+z] = LIMIT_UBYTE(sum);
-                    }
-                }
-                else if( y ==(height -1) ){
-                    if( x!=1 && x!=size-elemSize ){
-                        arr[0] = inimg[x-elemSize+((y-1)*size)+z];
-                        arr[1] = inimg[x+((y-1)*size)+z];
-                        arr[2] = inimg[x+elemSize+((y-1)*size)+z];
-                        arr[3] = arr[6] = inimg[x-elemSize+(y*size)+z];
-                        arr[4] = arr[7] = inimg[x+(y*size)+z];
-                        arr[5] = arr[8] = inimg[x+elemSize+(y*size)+z];
-                        cnt=0;
-                        float sum = 0.0;
-                        for(int i = -1; i < 2; i++) {
-                            for(int j = -1; j < 2; j++) {
-                                sum += kernel[i+1][j+1]*arr[cnt++];
-                            }
-                        }
-                        outimg[(x+y*size)+z] = LIMIT_UBYTE(sum);
-                    }
-                }
-
-                else{
-                    float sum = 0.0;
-                    for(int i = -1; i < 2; i++) {
-                        for(int j = -1; j < 2; j++) {
-                            sum += kernel[i+1][j+1]*inimg[((x+i*elemSize)+(y+j)*size)+z];
-                        }
-                    }
-                    outimg[(x+y*size)+z] = LIMIT_UBYTE(sum);
-                }
-
+        if(widthCnt==0){
+            //LeftUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
             }
+            //LeftDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+            }
+            else{
+                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+            }
+
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+        }
+
+        else if( widthCnt==(width*1 -1) ){
+            //RightUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+            }
+            //RightDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+            }
+            else{
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+            }
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+        }
+        else if(heightCnt==0){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else if( heightCnt ==(height -1) ){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+            }
+        }
+
+        else{
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
         }
     }
     return filteredImage;
@@ -166,128 +165,130 @@ QImage* BlurSharpenMask::blur3x3(const uchar* inimg, int value) {
     unsigned char arr[9] = {0};
     double sum = 0.0;
 
-    int elemSize = 4;
-    int rowSize = width * elemSize;
+    int rowSize = width ;
     int imageSize = rowSize * height;
 
     int widthCnt = 0, heightCnt = -1, cnt = 0;
 
-    for (int i = 0; i < imageSize; i += elemSize) {
+    for (int i = 0; i < imageSize; i += 1) {
         widthCnt = i % rowSize;
         if(i % rowSize == 0) heightCnt++;
-        //int offset = widthCnt + (heightCnt * rowSize) + z;
 
-        for(int z = 0; z < elemSize; z++){
-            if(widthCnt ==0) {
-                //좌측 상단 Vertex
-                if(heightCnt ==0){
-                    arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)+z];
-                    arr[2] = arr[5] = inimg[widthCnt+elemSize+(heightCnt*rowSize)+z];
-                    arr[6] = arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize) +z];
-                    arr[8] = inimg[widthCnt + elemSize + ((heightCnt+1)*rowSize) +z];
-                }
-                //좌측 하단 Vertex
-                else if(heightCnt == height -1){
-                    arr[0] = arr[1] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                    arr[2] = inimg[widthCnt+elemSize +((heightCnt-1)*rowSize)+z];
-                    arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt + ((heightCnt*rowSize))+z];
-                    arr[8] = arr[5] = inimg[widthCnt + elemSize + (heightCnt*rowSize)+z];
-                }
-                else {
-                    arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*rowSize) +z];
-                    arr[2] = inimg[widthCnt+elemSize+( (heightCnt-1)*rowSize) +z];
-                    arr[3] = arr[4] = inimg[widthCnt+(heightCnt*rowSize)+z];
-                    arr[5] = inimg[widthCnt+elemSize+(heightCnt*rowSize)+z];
-                    arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*rowSize) +z];
-                    arr[8] = inimg[widthCnt+elemSize+( (heightCnt+1)*rowSize) +z];
-                }
-                cnt=0;
-                sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                outimg[(widthCnt+heightCnt*rowSize)+z] = LIMIT_UBYTE(sum);
+        if(widthCnt ==0) {
+            //좌측 상단 Vertex
+            if(heightCnt ==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize) ];
+                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*rowSize) ];
+                arr[6] = arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize)  ];
+                arr[8] = inimg[widthCnt + 1 + ((heightCnt+1)*rowSize)  ];
             }
-            else if( widthCnt == (rowSize -elemSize) ){
-                //우측 상단 Vertex
-                if(heightCnt==0){
-                    arr[0] = arr[3] = inimg[widthCnt-elemSize + (heightCnt*rowSize) +z];
-                    arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*rowSize) +z];
-                    arr[6] = inimg[widthCnt-elemSize + ((heightCnt-1)*rowSize) +z];
-                    arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                }
-                //우측 하단 Vertex
-                else if(heightCnt==height-1){
-                    arr[0] = inimg[widthCnt-elemSize + ((heightCnt-1)*rowSize) +z];
-                    arr[1] = arr[2] = inimg[widthCnt-elemSize +((heightCnt-1)*rowSize) +z];
-                    arr[3] = arr[6] = inimg[widthCnt-elemSize+(heightCnt*rowSize)+z];
-                    arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*rowSize)+z];
-                }
-                else{
-                    arr[0] = inimg[widthCnt-elemSize + ((heightCnt-1)*rowSize) +z];
-                    arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*rowSize) +z];
-                    arr[3] = inimg[widthCnt-elemSize + (heightCnt*rowSize) +z];
-                    arr[5] = arr[4] = inimg[widthCnt+(heightCnt*rowSize) +z];
-                    arr[6] = inimg[widthCnt-elemSize + ((heightCnt+1)*rowSize) +z];
-                    arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize) +z];
-                }
-                cnt=0;
-                sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                outimg[(widthCnt+heightCnt*rowSize)+z] = LIMIT_UBYTE(sum);
+            //좌측 하단 Vertex
+            else if(heightCnt == height -1){
+                arr[0] = arr[1] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[2] = inimg[widthCnt+1 +((heightCnt-1)*rowSize) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt + ((heightCnt*rowSize)) ];
+                arr[8] = arr[5] = inimg[widthCnt + 1 + (heightCnt*rowSize) ];
             }
-            else if(heightCnt==0){
-                if( widthCnt!=1 && widthCnt!=rowSize-elemSize ){
-                    arr[0] = arr[3] = inimg[widthCnt-elemSize+(heightCnt*rowSize) +z];
-                    arr[1] = arr[4] = inimg[widthCnt+(heightCnt*rowSize)+z];
-                    arr[2] = arr[5] = inimg[widthCnt+elemSize+(heightCnt*rowSize) +z];
-                    arr[6] = inimg[widthCnt-elemSize+((heightCnt+1)*rowSize) +z];
-                    arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize) +z];
-                    arr[8] = inimg[widthCnt+elemSize + ((heightCnt+1)*rowSize) +z];
-                }
-                cnt=0;
-                sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                outimg[(widthCnt+heightCnt*rowSize)+z] = LIMIT_UBYTE(sum);
+            else {
+                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*rowSize)  ];
+                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*rowSize)  ];
+                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*rowSize) ];
+                arr[5] = inimg[widthCnt+1+(heightCnt*rowSize) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*rowSize)  ];
+                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*rowSize)  ];
             }
-            else if( heightCnt ==(height -1) ){
-                if( widthCnt!=1 && widthCnt!=rowSize-elemSize ){
-                    arr[0] = inimg[widthCnt-elemSize+((heightCnt-1)*rowSize)+z];
-                    arr[1] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                    arr[2] = inimg[widthCnt+elemSize+((heightCnt-1)*rowSize)+z];
-                    arr[3] = arr[6] = inimg[widthCnt-elemSize+(heightCnt*rowSize)+z];
-                    arr[4] = arr[7] = inimg[widthCnt+(heightCnt*rowSize)+z];
-                    arr[5] = arr[8] = inimg[widthCnt+elemSize+(heightCnt*rowSize)+z];
+            cnt=0;
+            sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
                 }
-                cnt=0;
-                sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                outimg[(widthCnt+heightCnt*rowSize)+z] = LIMIT_UBYTE(sum);
+            }
+            //outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
+
+        }
+        else if( widthCnt == (rowSize -1) ){
+            //우측 상단 Vertex
+            if(heightCnt==0){
+                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*rowSize)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*rowSize)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*rowSize)  ];
+                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+            }
+            //우측 하단 Vertex
+            else if(heightCnt==height-1){
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*rowSize)  ];
+                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*rowSize)  ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*rowSize) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*rowSize) ];
             }
             else{
-                double sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*inimg[((widthCnt+i*elemSize)+(heightCnt+j)*rowSize)+z];
-                    }
-                }
-                outimg[(widthCnt+heightCnt*rowSize)+z] = LIMIT_UBYTE(sum);
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*rowSize)  ];
+                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*rowSize)  ];
+                arr[3] = inimg[widthCnt-1 + (heightCnt*rowSize)  ];
+                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*rowSize)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*rowSize)  ];
+                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize)  ];
             }
-        } //for문 : z, elemSize
+            cnt=0;
+            sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+//            outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
+        }
+        else if(heightCnt==0){
+            if( widthCnt!=1 && widthCnt!=rowSize-1 ){
+                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*rowSize)  ];
+                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*rowSize) ];
+                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*rowSize)  ];
+                arr[6] = inimg[widthCnt-1+((heightCnt+1)*rowSize)  ];
+                arr[7] = inimg[widthCnt+((heightCnt+1)*rowSize)  ];
+                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*rowSize)  ];
+            }
+            cnt=0;
+            sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            //outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
+        }
+        else if( heightCnt ==(height -1) ){
+            if( widthCnt!=1 && widthCnt!=rowSize-1 ){
+                arr[0] = inimg[widthCnt-1+((heightCnt-1)*rowSize) ];
+                arr[1] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[2] = inimg[widthCnt+1+((heightCnt-1)*rowSize) ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*rowSize) ];
+                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*rowSize) ];
+                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*rowSize) ];
+            }
+            cnt=0;
+            sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            //outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
+        }
+        else{
+            double sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*rowSize) ];
+                }
+            }
+            //outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
+        }
     }   //for문 i imageSize
 
     return filteredImage;
@@ -318,511 +319,510 @@ QImage* BlurSharpenMask::blur5x5(const uchar* inimg) {
         if(i % rowSize == 0) heightCnt++;
         //int offset = widthCnt + (heightCnt * rowSize) + z;
 
-        for(int z = 0; z < elemSize; z++) {
-             sum = 0.0;
-             if ( (widthCnt > elemSize && widthCnt < (width-2)*elemSize) && (heightCnt >1 && heightCnt < height-2) ) {
+        sum = 0.0;
+        if ( (widthCnt > 1 && widthCnt < (width-2)*1) && (heightCnt >1 && heightCnt < height-2) ) {
 
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*inimg[(widthCnt+i*elemSize)+((heightCnt+j)*rowSize)+z];
-                     }
-                 }
-                 outimg[heightCnt*rowSize + widthCnt +z] = LIMIT_UBYTE(sum);
-             }
-             //LeftVertex
-             else if(widthCnt ==0){
-                 //LeftTopVertex
-                 if(heightCnt==0){
-                     arr[0] = arr[1]= arr[2] = arr[5] = arr[6] = arr[7] = arr[10]
-                             = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 else if(heightCnt == 1){
-                     arr[0] = arr[1] = arr[2] = arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[3] = arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[4] = arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 else if(heightCnt==height-2){
-                     arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = arr[17] = arr[20]
-                             = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                 }
-                 //LeftBottomVertex
-                 else if(heightCnt == height-1){
-                     arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11]= arr[15] = arr[16] = arr[17]
-                             = arr[20] = arr[21] = arr[22] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                 }
-                 //LeftSide
-                 else{
-                     arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*inimg[(widthCnt+i*1)+((heightCnt+j)*rowSize) ];
+                }
+            }
+            outimg[heightCnt*rowSize + widthCnt  ] = LIMIT_UBYTE(sum);
+        }
+        //LeftVertex
+        else if(widthCnt ==0){
+            //LeftTopVertex
+            if(heightCnt==0){
+                arr[0] = arr[1]= arr[2] = arr[5] = arr[6] = arr[7] = arr[10]
+                        = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
+            else if(heightCnt == 1){
+                arr[0] = arr[1] = arr[2] = arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[3] = arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[4] = arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
+            else if(heightCnt==height-2){
+                arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = arr[17] = arr[20]
+                        = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[23] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = arr[24] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+            }
+            //LeftBottomVertex
+            else if(heightCnt == height-1){
+                arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11]= arr[15] = arr[16] = arr[17]
+                        = arr[20] = arr[21] = arr[22] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+            }
+            //LeftSide
+            else{
+                arr[0] = arr[1] = arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             //LeftSide
-             else if(widthCnt==elemSize){
-                 //LeftTopVertex
-                 if(heightCnt==0){
-                     arr[0] = arr[1] = arr[5] = arr[6] = arr[10] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 else if(heightCnt==1){
-                     arr[0] = arr[1] = arr[5] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[3] = arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[4] = arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 //LeftBottomVertex
-                 else if(heightCnt == height -1){
-                     arr[0] = arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = arr[15] = arr[16] = arr[20] = arr[21] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)  +z];
-                     arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                 }
-                 else if(heightCnt == height -2){
-                     arr[0] = arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = arr[20] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                 }
-                 //LeftSide
-                 else{
-                     arr[0] = arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        //LeftSide
+        else if(widthCnt==1){
+            //LeftTopVertex
+            if(heightCnt==0){
+                arr[0] = arr[1] = arr[5] = arr[6] = arr[10] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
+            else if(heightCnt==1){
+                arr[0] = arr[1] = arr[5] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[3] = arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[4] = arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+            }
+            //LeftBottomVertex
+            else if(heightCnt == height -1){
+                arr[0] = arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = arr[15] = arr[16] = arr[20] = arr[21] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*1)+(heightCnt*rowSize)   ];
+                arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+            }
+            else if(heightCnt == height -2){
+                arr[0] = arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = arr[20] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[23] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = arr[24] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+            }
+            //LeftSide
+            else{
+                arr[0] = arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             //RightSide
-             else if(widthCnt==(width-2)*elemSize){
-                 //RightTopVertex
-                 if(heightCnt==0){
-                     arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[3] = arr[8] = arr[4] = arr[9] = arr[14] = arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[19] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = arr[24] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 else if(heightCnt==1){
-                     arr[0] = arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[1] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[3] = arr[4] = arr[8] = arr[9] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[14] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[19] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = arr[24] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
-                 //RightBottomVertex
-                 else if(heightCnt==height-2){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = arr[4] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = arr[9] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[14] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[23] = arr[19] = arr[24] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                 }
-                 else if(heightCnt == height-1){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = arr[4] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = arr[9] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[14] = arr[18] = arr[19] = arr[23] = arr[24] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                 }
-                 //RightSide
-                 else{
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = arr[4] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = arr[9] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[14] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[19] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = arr[24] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        //RightSide
+        else if(widthCnt==(width-2)*1){
+            //RightTopVertex
+            if(heightCnt==0){
+                arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[3] = arr[8] = arr[4] = arr[9] = arr[14] = arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[19] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = arr[24] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+            }
+            else if(heightCnt==1){
+                arr[0] = arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[1] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[3] = arr[4] = arr[8] = arr[9] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[14] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[19] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = arr[24] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+            }
+            //RightBottomVertex
+            else if(heightCnt==height-2){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = arr[4] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = arr[9] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[14] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[20] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[23] = arr[19] = arr[24] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+            }
+            else if(heightCnt == height-1){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = arr[4] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = arr[9] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[14] = arr[18] = arr[19] = arr[23] = arr[24] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+            }
+            //RightSide
+            else{
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = arr[4] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = arr[9] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[14] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[19] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = arr[24] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             //RightSide
-             else if(widthCnt==(width-1)*elemSize){
-                 //RightTopVertex
-                 if(heightCnt==0){
-                     arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[2] = arr[7] = arr[3] = arr[8] = arr[13]
-                             = arr[4] = arr[9] = arr[14] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                 }
-                 else if(heightCnt==1){
-                     arr[0] = arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[1] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[2] = arr[7] = arr[3] = arr[4] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[15] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                 }
-                 //RightBottomVertex
-                 else if(heightCnt==height-1){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[13] = arr[14] = arr[17]
-                             = arr[18] = arr[19] = arr[22] = arr[23] = arr[24] = inimg[widthCnt + heightCnt*rowSize + z];
-                 }
-                 else if(heightCnt==height-2){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[18] = arr[19] = arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                 }
-                 //RightSide
-                 else{
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[widthCnt-2*elemSize+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[widthCnt-1*elemSize+((heightCnt+2)*rowSize)+z];
-                     arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        //RightSide
+        else if(widthCnt==(width-1)*1){
+            //RightTopVertex
+            if(heightCnt==0){
+                arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[2] = arr[7] = arr[3] = arr[8] = arr[13]
+                        = arr[4] = arr[9] = arr[14] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+            }
+            else if(heightCnt==1){
+                arr[0] = arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[1] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[2] = arr[7] = arr[3] = arr[4] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[15] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+            }
+            //RightBottomVertex
+            else if(heightCnt==height-1){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[13] = arr[14] = arr[17]
+                        = arr[18] = arr[19] = arr[22] = arr[23] = arr[24] = inimg[widthCnt + heightCnt*rowSize];
+            }
+            else if(heightCnt==height-2){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[15] = arr[20] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[18] = arr[19] = arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+            }
+            //RightSide
+            else{
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = arr[3] = arr[4] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = arr[8] = arr[9] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[13] = arr[14] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[18] = arr[19] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[widthCnt-2*1+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[widthCnt-1*1+((heightCnt+2)*rowSize) ];
+                arr[22] = arr[23] = arr[24] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
 
-                 }
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
 
-             //TopSide
-             else if( heightCnt==0){
-                 if(widthCnt>elemSize && widthCnt <(width-2)*elemSize){
-                     arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
+        //TopSide
+        else if( heightCnt==0){
+            if(widthCnt>1 && widthCnt <(width-2)*1){
+                arr[0] = arr[5] = arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[1] = arr[6] = arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[2] = arr[7] = arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[3] = arr[8] = arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[4] = arr[9] = arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             else if(heightCnt==1){
-                 if(widthCnt>elemSize && widthCnt <(width-2)*elemSize){
-                     arr[0] = arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[1] = arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[3] = arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[4] = arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize)+z];
-                     arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+2)*rowSize)+z];
-                     arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+2)*rowSize)+z];
-                 }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        else if(heightCnt==1){
+            if(widthCnt>1 && widthCnt <(width-2)*1){
+                arr[0] = arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[1] = arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[2] = arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[3] = arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[4] = arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+                arr[20] = inimg[(widthCnt-2*1)+((heightCnt+2)*rowSize) ];
+                arr[21] = inimg[(widthCnt-1*1)+((heightCnt+2)*rowSize) ];
+                arr[22] = inimg[widthCnt+((heightCnt+2)*rowSize) ];
+                arr[23] = inimg[(widthCnt+1*1)+((heightCnt+2)*rowSize) ];
+                arr[24] = inimg[(widthCnt+2*1)+((heightCnt+2)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             //BottomSide
-             else if(heightCnt==height-2){
-                 if(widthCnt>elemSize && widthCnt <(width-2)*elemSize){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize)+z];
-                     arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+((heightCnt+1)*rowSize)+z];
-                     arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+((heightCnt+1)*rowSize)+z];
-                 }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        //BottomSide
+        else if(heightCnt==height-2){
+            if(widthCnt>1 && widthCnt <(width-2)*1){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+                arr[15] = arr[20] = inimg[(widthCnt-2*1)+((heightCnt+1)*rowSize) ];
+                arr[16] = arr[21] = inimg[(widthCnt-1*1)+((heightCnt+1)*rowSize) ];
+                arr[17] = arr[22] = inimg[widthCnt+((heightCnt+1)*rowSize) ];
+                arr[18] = arr[23] = inimg[(widthCnt+1*1)+((heightCnt+1)*rowSize) ];
+                arr[19] = arr[24] = inimg[(widthCnt+2*1)+((heightCnt+1)*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-             else if( heightCnt==height-1){
-                 if(widthCnt>elemSize && widthCnt <(width-2)*elemSize){
-                     arr[0] = inimg[(widthCnt-2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[1] = inimg[(widthCnt-1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize)+z];
-                     arr[3] = inimg[(widthCnt+1*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[4] = inimg[(widthCnt+2*elemSize)+((heightCnt-2)*rowSize)+z];
-                     arr[5] = inimg[(widthCnt-2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[6] = inimg[(widthCnt-1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize)+z];
-                     arr[8] = inimg[(widthCnt+1*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[9] = inimg[(widthCnt+2*elemSize)+((heightCnt-1)*rowSize)+z];
-                     arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*elemSize)+(heightCnt*rowSize)+z];
-                     arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize + z];
-                     arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*elemSize)+(heightCnt*rowSize)+z];
-                     arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*elemSize)+(heightCnt*rowSize)+z];
-                 }
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+        else if( heightCnt==height-1){
+            if(widthCnt>1 && widthCnt <(width-2)*1){
+                arr[0] = inimg[(widthCnt-2*1)+((heightCnt-2)*rowSize) ];
+                arr[1] = inimg[(widthCnt-1*1)+((heightCnt-2)*rowSize) ];
+                arr[2] = inimg[widthCnt+((heightCnt-2)*rowSize) ];
+                arr[3] = inimg[(widthCnt+1*1)+((heightCnt-2)*rowSize) ];
+                arr[4] = inimg[(widthCnt+2*1)+((heightCnt-2)*rowSize) ];
+                arr[5] = inimg[(widthCnt-2*1)+((heightCnt-1)*rowSize) ];
+                arr[6] = inimg[(widthCnt-1*1)+((heightCnt-1)*rowSize) ];
+                arr[7] = inimg[widthCnt+((heightCnt-1)*rowSize) ];
+                arr[8] = inimg[(widthCnt+1*1)+((heightCnt-1)*rowSize) ];
+                arr[9] = inimg[(widthCnt+2*1)+((heightCnt-1)*rowSize) ];
+                arr[10] = arr[15] = arr[20] = inimg[(widthCnt-2*1)+(heightCnt*rowSize) ];
+                arr[11] = arr[16] = arr[21] = inimg[(widthCnt-1*1)+(heightCnt*rowSize) ];
+                arr[12] = arr[17] = arr[22] = inimg[widthCnt + heightCnt*rowSize ];
+                arr[13] = arr[18] = arr[23] = inimg[(widthCnt+1*1)+(heightCnt*rowSize) ];
+                arr[14] = arr[19] = arr[24] = inimg[(widthCnt+2*1)+(heightCnt*rowSize) ];
+            }
 
-                 int cnt=0;
-                 for(int i = -2; i < 3; i++) {
-                     for(int j = -2; j < 3; j++) {
-                         sum += blur[i+2][j+2]*arr[cnt++];
-                     }
-                 }
-                 outimg[widthCnt + heightCnt*rowSize + z] = LIMIT_UBYTE(sum);
-             }
-         }   //for문 z, elemSize
+            int cnt=0;
+            for(int i = -2; i < 3; i++) {
+                for(int j = -2; j < 3; j++) {
+                    sum += blur[i+2][j+2]*arr[cnt++];
+                }
+            }
+            outimg[widthCnt + heightCnt*rowSize ] = LIMIT_UBYTE(sum);
+        }
+
     }   //for문 i, imageSize
     return filteredImage;
 }
-
+/*
 QImage* BlurSharpenMask::blur7x7(const uchar* in) {
 
     int cols = width;
@@ -1553,8 +1553,6 @@ QImage* BlurSharpenMask::blur7x7(const uchar* in) {
 
 
                     }
-
-
                 }
             }
         }
@@ -1562,3 +1560,4 @@ QImage* BlurSharpenMask::blur7x7(const uchar* in) {
 
     return filteredImage;
 }
+*/

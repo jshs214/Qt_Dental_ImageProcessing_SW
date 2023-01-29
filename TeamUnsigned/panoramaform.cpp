@@ -82,6 +82,8 @@ void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
 }
 
+
+
 void PanoramaForm::on_brightMinusButton_clicked()
 {
     brightValue = ui->brightSlider->value();
@@ -190,6 +192,10 @@ void PanoramaForm::on_sbSlider_valueChanged(int sbValue)
 /********************************************************************************************/
 void PanoramaForm::on_preset_Button1_clicked()
 {
+    int brightValue = ui->brightSlider->value();
+    int contrastValue = ui->contrastSlider->value();
+    int sbValue = ui->sbSlider->value();
+    //Median 버튼
     /* preset button ui 초기화 */
     ui->preset_Button2->setStyleSheet("");
     ui->preset_Button3->setStyleSheet("");
@@ -199,7 +205,14 @@ void PanoramaForm::on_preset_Button1_clicked()
     ui->preset_Button1->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
-
+    if(brightValue == 0 && contrastValue == 0 && sbValue == 0){
+        defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+        emit sendPanoPreset(defaultPixmap, 1);
+    }
+    //QPixmap pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+    else{
+        emit sendPanoPreset(prevPixmap, 1);
+    }
 }
 
 void PanoramaForm::on_preset_Button2_clicked()
@@ -239,6 +252,7 @@ void PanoramaForm::on_preset_Button4_clicked()
     ui->preset_Button4->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+
 }
 
 void PanoramaForm::on_preset_Button5_clicked()
@@ -360,6 +374,7 @@ void PanoramaForm::text(QPixmap &pixmap)
 
 void PanoramaForm::receieveImg(QPixmap& pixmap)
 {
+    prevPixmap = pixmap;
     emit sendPanoView(pixmap);
 }
 

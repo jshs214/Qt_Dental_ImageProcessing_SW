@@ -154,7 +154,7 @@ border: 1px solid gray;</string>
               </size>
              </property>
              <property name="text">
-              <string>PRESET 1</string>
+              <string>MEDIAN</string>
              </property>
             </widget>
            </item>

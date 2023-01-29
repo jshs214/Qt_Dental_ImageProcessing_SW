@@ -5,6 +5,7 @@
 #include "cephaloform.h"
 #include "panovalueadjustment.h"
 #include "cephvalueadjustment.h"
+#include "panopreset.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,7 +18,6 @@ MainWindow::MainWindow(QWidget *parent)
     panoramaForm = new PanoramaForm(this);
     connect(panoramaForm, SIGNAL(destroyed()),
             panoramaForm, SLOT(deleteLater()));
-
     cephaloForm = new CephaloForm(this);
     connect(cephaloForm, SIGNAL(destroyed()),
             cephaloForm, SLOT(deleteLater()));
@@ -29,6 +29,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(cephValueAdjustment, SIGNAL(destroyed()),
             cephValueAdjustment, SLOT(deleteLater()));
 
+    panoPreset = new PanoPreset(this);
+    connect(panoPreset, SIGNAL(destroyed()),
+            panoPreset, SLOT(deleteLater()));
+
     /* ui 설정 */
     ui->stackedWidget->insertWidget(0, panoramaForm);
     ui->stackedWidget->insertWidget(1, cephaloForm);
@@ -38,12 +42,22 @@ MainWindow::MainWindow(QWidget *parent)
     /* Load 시, 밝기, 대조, 블러 이미지 경로 SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoValueAdjustment, SLOT(receiveFile(QString)));
+
     /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int)),
             panoValueAdjustment, SLOT(changePanoValue(int, int, int)));
 
+
+
     /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
+            panoramaForm, SLOT(receieveImg(QPixmap&)));
+
+    /* Preset SIGNAL/SLOT */
+    connect(panoramaForm, SIGNAL(sendPanoPreset(QPixmap&, int)),
+            panoPreset, SLOT(receievePreset_1(QPixmap&, int)));
+    /* Preset SIGNAL/SLOT */
+    connect(panoPreset, SIGNAL(sendMedian(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
 
 

@@ -16,6 +16,7 @@ SOURCES += \
     dentalimageview.cpp \
     main.cpp \
     mainwindow.cpp \
+    panopreset.cpp \
     panoramaform.cpp \
     panovalueadjustment.cpp
 
@@ -26,6 +27,7 @@ HEADERS += \
     cephvalueadjustment.h \
     dentalimageview.h \
     mainwindow.h \
+    panopreset.h \
     panoramaform.h \
     panovalueadjustment.h
 
