@@ -33,8 +33,9 @@ void PanoValueAdjustment::receiveFile(QString file)
     sharpenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
     memset(sharpenImg, 0, sizeof(unsigned char) * imageSize);
 
-    set3x3MaskValue();
-    for(int i = 0; i < imageSize; i ++){
+    set3x3MaskValue();  // 영상의 Mask 값 구함
+
+    for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
         avg += inimg[i];
     }
 
@@ -50,7 +51,7 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
 
     /* 밝기값만 조정되는 case */
     if(contrastValue == 0 && sbValue == 0){
-        int value = (float) brightValue / 2.5;
+        int value =  brightValue / 2.5;
         for(int i = 0; i < imageSize; i ++){
             *(outimg + i) = LIMIT_UBYTE( *(inimg + i) + value );
         }
@@ -58,16 +59,18 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     /* 대비값만 조정되는 case */
     else if(brightValue == 0 && sbValue == 0){
         if (contrastValue > 0) {
-            float contrast = (50.0+contrastValue)/50.0;
+
+            float contrast = (100.0+contrastValue/2)/100.0;
+            qDebug()<< contrast;
             for(int i = 0; i < imageSize; i ++){
-                 *(outimg + i) = LIMIT_UBYTE( 128 + (*(inimg+i)-128) *contrast );
+                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
         }
         else {
             contrastValue *= 0.5;
-            float contrast = (50.0+contrastValue)/50.0;
+            float contrast = (50.0+contrastValue/2)/50.0;
             for(int i = 0; i < imageSize; i ++){
-                 *(outimg + i) = LIMIT_UBYTE( 128 + (*(inimg+i)-128) *contrast );
+                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
         }
     }
@@ -88,19 +91,8 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
         case 0:
             prevImg = defaultImg;
             break;
-        case 1:
-            highBoost(sbValue);
-            break;
-        case 2:
-            highBoost(sbValue);
-            break;
-        case 3:
-            highBoost(sbValue);
-            break;
-        case 4:
-            highBoost(sbValue);
-            break;
         default:
+            highBoost(sbValue);
             break;
         }
         image = prevImg;
@@ -121,34 +113,23 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
             case -1:
                 blur3x3(sbValue);
                 break;
-            case 1:
-                highBoost(sbValue);
-                break;
-            case 2:
-                highBoost(sbValue);
-                break;
-            case 3:
-                highBoost(sbValue);
-                break;
-            case 4:
-                highBoost(sbValue);
-                break;
             default:
+                highBoost(sbValue);
                 break;
             }
             image = prevImg;
             sharpenImg = image.bits();  //sharpen한 연산 결과가져를 옴.
             if (contrastValue > 0) {
-                float contrast = (50.0+contrastValue)/50.0;
+                float contrast = (50.0+contrastValue/2)/50.0;
                 for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( 128 + (*(sharpenImg+i)-128) *contrast  + brightValue );
+                     *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + brightValue );
                 }
             }
             else {
                 contrastValue *= 0.5;
-                float contrast = (50.0+contrastValue)/50.0;
+                float contrast = (50.0+contrastValue/2)/50.0;
                 for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( 128 + (*(sharpenImg+i)-128) *contrast  + brightValue);
+                     *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + brightValue);
                 }
             }
         }
@@ -226,7 +207,7 @@ void PanoValueAdjustment::set3x3MaskValue(){
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = *(inimg + i) - *(outimg + i);
+            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
         }
 
         else if( widthCnt==(width*1 -1) ){
@@ -260,7 +241,7 @@ void PanoValueAdjustment::set3x3MaskValue(){
                 }
             }
             *(outimg + i ) = LIMIT_UBYTE(sum);
-            *(mask + i) = *(inimg + i) - *(outimg + i) ;
+            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
             if( widthCnt!=1 && widthCnt!=width-1 ){
@@ -279,7 +260,7 @@ void PanoValueAdjustment::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) = *(inimg + i) - *(outimg + i);
+                *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
             }
         }
         else if( heightCnt ==(height -1) ){
@@ -298,7 +279,7 @@ void PanoValueAdjustment::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) = *(inimg + i) - *(outimg + i);
+                *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
             }
         }
         else{

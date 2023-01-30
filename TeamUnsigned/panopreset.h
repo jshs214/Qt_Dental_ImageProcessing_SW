@@ -18,7 +18,8 @@ signals:
 private:
     unsigned char* outimg;
     void insertion(int a[], int n);
-
+    int setMax(int a[], int n);
+    int setMin(int a[], int n);
 };
 
 #endif // PANOPRESET_H
