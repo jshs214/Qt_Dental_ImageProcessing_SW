@@ -311,7 +311,7 @@ QImage* BlurSharpenMask::blur5x5(const uchar* inimg) {
     int rowSize = width * elemSize;
     int imageSize = rowSize * height;
 
-    int widthCnt = 0, heightCnt = -1, cnt = 0;
+    int widthCnt = 0, heightCnt = -1;
 
     // inSide
     for(int i = 0; i < imageSize; i+=elemSize){

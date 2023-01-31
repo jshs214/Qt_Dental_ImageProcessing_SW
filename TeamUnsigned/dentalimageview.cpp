@@ -1,20 +1,23 @@
 #include "dentalimageview.h"
-#include "qevent.h"
+#include "histogram.h"
 
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QFile>
+#include <QEvent>
 #include <QFileDialog>
+
 
 DentalImageView::DentalImageView()
 {
     setAcceptDrops(true);   //Drag & Drop true
 
-    m_layout.addWidget(&m_area, 0, 0, 1, 4);
+    m_layout.addWidget(&m_area, 0, 0, 1, 5);
     m_layout.addWidget(&m_zoomOut, 1, 0);
     m_layout.addWidget(&m_zoomIn, 1, 1);
     m_layout.addWidget(&m_scaleLabel, 1, 2);
     m_layout.addWidget(&m_zoomReset, 1, 3);
+    m_layout.addWidget(&m_histo, 1, 4);
 
     m_imageLabel = new QLabel(this);
     m_area.setWidget(m_imageLabel);
@@ -39,6 +42,14 @@ DentalImageView::DentalImageView()
             m_scaleFactor=1;
             m_scaleLabel.setText("100.0%");
         }
+    });
+
+    connect(&m_histo, &QPushButton::clicked, [this]{
+        histogram = new Histogram();
+        connect(this, SIGNAL(sendHisto(QPixmap&)),
+                histogram, SLOT(receiveHisto(QPixmap&)));
+        emit sendHisto(viewPixmap);
+        delete histogram;
     });
 }
 
@@ -90,6 +101,9 @@ void DentalImageView::dropEvent(QDropEvent* event)
 /* panoramaForm 에서 로드 버튼 클릭 시 or 연산 후,  뷰로 픽스맵 데이터 전송하는 함수. */
 void DentalImageView::receiveLoadImg(QPixmap pixmap)
 {
+    viewPixmap = pixmap.scaled(dentalViewWidth, dentalViewHeight);
+//    viewPixmap = pixmap;
+
     m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
     scaleImage(1.0);
 

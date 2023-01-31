@@ -7,6 +7,7 @@
 #include "cephvalueadjustment.h"
 #include "panopreset.h"
 
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -48,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
             panoValueAdjustment, SLOT(changePanoValue(int, int, int)));
 
 
-
     /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
@@ -71,7 +71,6 @@ MainWindow::MainWindow(QWidget *parent)
     /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
     connect(cephValueAdjustment, SIGNAL(cephImgSend(QPixmap&)),
             cephaloForm, SLOT(receieveImg(QPixmap&)));
-
 
 }
 
