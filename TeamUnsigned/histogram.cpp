@@ -8,8 +8,6 @@ Histogram::Histogram(QWidget *parent)
 
 void Histogram:: setHistoChart(){
 
-    qDebug()<< __LINE__ << "min , max : " <<min << max;
-
     QString legendName = "range : " + QString::number(min) + " ~ " +QString::number(max);
 
     QBarSet *set0 = new QBarSet(legendName);
@@ -27,7 +25,7 @@ void Histogram:: setHistoChart(){
     chart->setAnimationOptions(QChart::AllAnimations);
 
     QStringList xValue;
-    for(int i = min; i < max; i ++){  //x축 value 설정
+    for(int i = min; i < max +1; i ++){  //x축 value 설정
         xValue <<  QString::number(i);
     }
 
@@ -53,16 +51,18 @@ void Histogram:: setHistoChart(){
 }
 
 void Histogram::receiveHisto(QPixmap& pixmap){
+
     min = 999, max = 0;
     hstMin = 999, hstMax = 0;
 
     image =  pixmap.toImage();
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+
     inimg = image.bits();
 
     width = image.width();
     height = image.height();
     imageSize = width * height;
-
 
     for(int i = 0; i < 256; i ++) {
         histo[i] =0;
@@ -81,6 +81,7 @@ void Histogram::receiveHisto(QPixmap& pixmap){
         if(hstMax <= histo[i]) hstMax = histo[i];
     }
     qDebug()<< __LINE__ << "min , max : " <<min << max;
+
     setHistoChart();
 }
 
