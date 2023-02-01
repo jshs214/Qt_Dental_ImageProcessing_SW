@@ -29,9 +29,9 @@ private:
     void blur3x3(int);
     void blur5x5();
 private slots:
-    void receiveFile(QString);
+    void receiveFile(QString);  //defaultImg receive 수정 해야댈 듯
     void changePanoValue(int, int, int);
-
+    void receivePrev(QPixmap&); //prevImg receive
 signals:
     void panoImgSend(QPixmap&);
     void sendSharpenValue(int);

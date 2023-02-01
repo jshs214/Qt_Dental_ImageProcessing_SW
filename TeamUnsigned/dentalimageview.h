@@ -19,12 +19,8 @@ public:
 
     void scaleImage(double);
 
-protected:
-    void dragEnterEvent(QDragEnterEvent* event) override;
-    void dragMoveEvent(QDragMoveEvent* event) override;
-    void dropEvent(QDropEvent* event) override;
-
 private:
+    void updateStyleSheet();
     QGridLayout m_layout{this};
     QScrollArea m_area;
     QLabel *m_imageLabel, m_scaleLabel;
@@ -49,6 +45,7 @@ signals:
     void send(QPixmap , QString);
     void sendSave(QImage&);
     void sendHisto(QPixmap&);
+    void sendPanoPrev(QPixmap&);
 };
 
 #endif // DENTALIMAGEVIEW_H

@@ -22,8 +22,7 @@ void PanoPreset::insertion(int a[], int n){
     }
 }
 
-void PanoPreset::receievePreset_1(QPixmap& pixmap,int value){
-
+void PanoPreset::receievePreset_1(QPixmap& pixmap){
     QImage image(pixmap.toImage().convertToFormat(QImage::Format_Grayscale8));
     int width = image.width();
     int height = image.height();

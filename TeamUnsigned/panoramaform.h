@@ -48,7 +48,6 @@ private slots:
 
     void on_resetButton_clicked();
 
-    void receieveDefaultImg(QPixmap, QString);
     void text(QPixmap&);
     void receieveImg(QPixmap&);
 
@@ -56,6 +55,7 @@ private slots:
 
     void panoImageSave(QImage&);
 
+    void on_hePushButton_clicked();
 
 private:
     Ui::PanoramaForm *ui;
@@ -67,7 +67,7 @@ private:
     int imageWidth;
     int imageHeight;
     int panoImgLabelWidth = 360;
-    int panoImgLabelHeight = 287;
+    int panoImgLabelHeight = 260;
     int brightValue;
     int contrastValue;
     int sbValue;
@@ -81,7 +81,8 @@ signals:
     void sendResetPano(QPixmap&);
     void savePanoSignal();
 
-    void sendPanoPreset(QPixmap&, int);
+    void sendPanoPrev(QPixmap&);
+    void sendPanoPreset(QPixmap&);
 
 };
 

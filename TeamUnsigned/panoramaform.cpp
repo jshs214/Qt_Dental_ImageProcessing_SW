@@ -44,12 +44,9 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
 
     connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
 
-    /* Load Image SIGNAL/SLOT */
-    connect(dentalImageView, SIGNAL(send(QPixmap,QString)),
-            this, SLOT(receieveDefaultImg(QPixmap,QString)));
+    /* Send PanoramaImg to View*/
     connect(this, SIGNAL(sendPanoView(QPixmap)),
             dentalImageView, SLOT(receiveLoadImg(QPixmap)));
-
     /* Reset PanoImage SIGNAL/SLOT */
     connect(this, SIGNAL(sendResetPano(QPixmap&)),
             dentalImageView, SLOT(receiveResetPano(QPixmap&)));
@@ -195,7 +192,7 @@ void PanoramaForm::on_preset_Button1_clicked()
     int brightValue = ui->brightSlider->value();
     int contrastValue = ui->contrastSlider->value();
     int sbValue = ui->sbSlider->value();
-    //Median 버튼
+
     /* preset button ui 초기화 */
     ui->preset_Button2->setStyleSheet("");
     ui->preset_Button3->setStyleSheet("");
@@ -206,12 +203,11 @@ void PanoramaForm::on_preset_Button1_clicked()
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
     if(brightValue == 0 && contrastValue == 0 && sbValue == 0){
-        defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
-        emit sendPanoPreset(defaultPixmap, 1);
+        emit sendPanoPreset(defaultPixmap);
     }
     //QPixmap pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
     else{
-        emit sendPanoPreset(prevPixmap, 1);
+        emit sendPanoPreset(prevPixmap);
     }
 }
 
@@ -284,21 +280,26 @@ void PanoramaForm::on_preset_Button6_clicked()
 /********************************************************************************************/
 void PanoramaForm::on_resetButton_clicked()
 {
-    ui->preset_Button1->setStyleSheet("");
-    ui->preset_Button2->setStyleSheet("");
-    ui->preset_Button3->setStyleSheet("");
-    ui->preset_Button4->setStyleSheet("");
-    ui->preset_Button5->setStyleSheet("");
-    ui->preset_Button6->setStyleSheet("");
+    if(defaultImg.isNull()){
+        return;
+    }
+    else{
+        ui->preset_Button1->setStyleSheet("");
+        ui->preset_Button2->setStyleSheet("");
+        ui->preset_Button3->setStyleSheet("");
+        ui->preset_Button4->setStyleSheet("");
+        ui->preset_Button5->setStyleSheet("");
+        ui->preset_Button6->setStyleSheet("");
 
-    ui->brightSlider->setValue(0);
-    ui->contrastSlider->setValue(0);
-    ui->sbSlider->setValue(0);
+        ui->brightSlider->setValue(0);
+        ui->contrastSlider->setValue(0);
+        ui->sbSlider->setValue(0);
 
-    QPixmap pixmap;
-    pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
-    emit sendResetPano(pixmap);
+        QPixmap pixmap;
+        pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
 
+        emit sendResetPano(pixmap);
+    }
 }
 
 
@@ -326,7 +327,7 @@ void PanoramaForm::on_filePushButton_clicked()
             emit sendPanoView(pixmap);
             ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
             defaultImg = pixmap.toImage();
-
+            defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
             ui->panoProgressBar->setValue(100);
             ui->progressbarLabel->setText("Success Load Panorama Image !!!");
         }
@@ -350,22 +351,6 @@ void PanoramaForm::on_filePushButton_clicked()
 
 }
 
-void PanoramaForm::receieveDefaultImg(QPixmap pixmap, QString file)
-{
-    ui->pathLineEdit->clear();
-
-    defaultImg = pixmap.toImage();
-    emit sendPanoAdj(file);
-
-    ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
-    ui->panoProgressBar->setValue(100);
-    ui->progressbarLabel->setText("Success Load Panorama Image !!!");
-
-    QStringList nameStr = file.split("/").last().split(".");
-    QString fileName = nameStr.first();
-    ui->pathLineEdit->setText(fileName);
-}
-
 void PanoramaForm::text(QPixmap &pixmap)
 {
     ui->panoImgLabel->setPixmap(QPixmap());
@@ -380,20 +365,34 @@ void PanoramaForm::receieveImg(QPixmap& pixmap)
 
 void PanoramaForm::panoImageSave(QImage& saveimg)
 {
-    QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
-                                                    "Image File(*.jpg *.bmp *.raw *.png)");
-    QFile * file = new QFile(filename);
-    file->open(QIODevice::WriteOnly | QIODevice::Text);
-    QFileInfo fileInfo(filename);
-
-    if(fileInfo.isWritable()){
-        saveimg.save(filename);
+    if(defaultImg.isNull()) {
+        QMessageBox::warning(this, "Error", "There are no image files to save", QMessageBox::Ok);
+        return;
     }
     else {
-        QMessageBox::warning(this, "Error", "Can't Save this file", QMessageBox::Ok);
-    }
+        QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
+                                                        "Image File(*.jpg *.bmp *.raw *.png)");
+        QFile * file = new QFile(filename);
+        file->open(QIODevice::WriteOnly | QIODevice::Text);
+        QFileInfo fileInfo(filename);
 
-    file->close();
-    delete file;
+        if(fileInfo.isWritable()){
+            saveimg.save(filename);
+        }
+        else {
+            QMessageBox::warning(this, "Error", "Can't Save this file", QMessageBox::Ok);
+        }
+
+        file->close();
+        delete file;
+    }
+}
+
+void PanoramaForm::on_hePushButton_clicked()
+{
+    /* preset Img가 있으면 preset, 없으면 원본 Img */
+    if(prevPixmap.isNull())  emit sendPanoPrev(defaultPixmap);
+    else emit sendPanoPrev(prevPixmap);
 
 }
+

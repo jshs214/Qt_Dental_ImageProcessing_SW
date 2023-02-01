@@ -10,7 +10,7 @@ public:
     explicit PanoPreset(QObject *parent = nullptr);
 
 private slots:
-    void receievePreset_1(QPixmap&, int);
+    void receievePreset_1(QPixmap&);
 
 signals:
     void sendMedian(QPixmap&);

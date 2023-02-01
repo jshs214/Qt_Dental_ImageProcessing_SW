@@ -3,16 +3,16 @@
 Histogram::Histogram(QWidget *parent)
     : QWidget{parent}
 {
-
 }
 
 void Histogram:: setHistoChart(){
 
-    QString legendName = "range : " + QString::number(min) + " ~ " +QString::number(max);
+    QString legendName = "value range : " + QString::number(min) + " ~ " +QString::number(max);
 
     QBarSet *set0 = new QBarSet(legendName);
+    set0->setColor(Qt::black);
 
-    for(int i = min; i <= max; i++){   // value count 채우기
+    for(int i = min; i < max+1; i++){   // value count 채우기
         set0->append(histo[i]);
     }
 
@@ -35,7 +35,8 @@ void Histogram:: setHistoChart(){
     series->attachAxis(axisX);
 
     QValueAxis *axisY = new QValueAxis();
-    axisY->setRange(hstMin,hstMax);
+    axisY->setLabelFormat("%.0f");
+    axisY->setRange(hstMin, hstMax);
     chart->addAxis(axisY, Qt::AlignLeft);
     series->attachAxis(axisY);
 
@@ -44,10 +45,16 @@ void Histogram:: setHistoChart(){
 
     QChartView *chartView = new QChartView(chart);
     chartView->setRenderHint(QPainter::Antialiasing);
-    chartView->chart()->setBackgroundBrush(QBrush(QColor("salmon")));
+
+    // Customize chart background
+    QLinearGradient backgroundGradient;
+    backgroundGradient.setColorAt(0.0, QRgb(0xd2d0d1));
+    backgroundGradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+    chartView->chart()->setBackgroundBrush(backgroundGradient);
+    chartView->chart()->setPlotAreaBackgroundVisible(true);
 
     chartView->show();
-    chartView->resize(500,500);
+    chartView->resize(300,300);
 }
 
 void Histogram::receiveHisto(QPixmap& pixmap){
@@ -80,7 +87,6 @@ void Histogram::receiveHisto(QPixmap& pixmap){
         if(hstMin >= histo[i]) hstMin = histo[i];
         if(hstMax <= histo[i]) hstMax = histo[i];
     }
-    qDebug()<< __LINE__ << "min , max : " <<min << max;
 
     setHistoChart();
 }

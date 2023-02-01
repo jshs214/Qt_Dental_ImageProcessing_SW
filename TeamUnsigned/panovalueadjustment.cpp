@@ -61,7 +61,6 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
         if (contrastValue > 0) {
 
             float contrast = (100.0+contrastValue/2)/100.0;
-            qDebug()<< contrast;
             for(int i = 0; i < imageSize; i ++){
                  *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
@@ -971,3 +970,51 @@ void PanoValueAdjustment::blur5x5(){
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 }
 
+void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
+{
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    QImage image;
+    image = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
+
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+
+    unsigned char *inimg;
+    inimg = image.bits();
+
+    width = image.width();
+    height = image.height();
+    imageSize = width * height;
+
+    int histo[256], sum_of_h[256];
+    int value,k;
+    float constant;
+
+    for(int i = 0; i < 256; i ++) {
+        histo[i] =0;
+        sum_of_h[i] = 0;
+    }
+
+    for (int i = 0; i < imageSize; i++) {   //histogram 분포
+        value = inimg[i];
+        histo[value] += 1;
+        outimg[i] = value;
+    }
+
+    //histogram
+      for (int i = 0, sum = 0; i < 256; i++){
+          sum += histo[i];
+          sum_of_h[i] = sum;
+      }
+
+      /* constant = new # of gray levels div by area */
+      constant = (float)(256) / (float)(height * width);
+      for (int i = 0; i < imageSize; i++) {
+          k = outimg[i];
+          outimg[i] = LIMIT_UBYTE( sum_of_h[k] * constant );
+      }
+
+      image = QImage(outimg, width, height, QImage::Format_Grayscale8);
+      pixmap = pixmap.fromImage(image);
+      emit panoImgSend(pixmap);
+}

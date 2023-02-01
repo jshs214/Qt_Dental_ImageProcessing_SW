@@ -43,20 +43,19 @@ MainWindow::MainWindow(QWidget *parent)
     /* Load 시, 밝기, 대조, 블러 이미지 경로 SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoValueAdjustment, SLOT(receiveFile(QString)));
-
     /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int)),
             panoValueAdjustment, SLOT(changePanoValue(int, int, int)));
-
-
-    /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
+    /* 밝기, 대조, 블러 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
+    /* 히스토 연산을 위한 SIGNAL/SLOT */
+    connect(panoramaForm, SIGNAL(sendPanoPrev(QPixmap&)),
+            panoValueAdjustment, SLOT(receivePrev(QPixmap&)));
 
     /* Preset SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoPreset(QPixmap&, int)),
-            panoPreset, SLOT(receievePreset_1(QPixmap&, int)));
-    /* Preset SIGNAL/SLOT */
+    connect(panoramaForm, SIGNAL(sendPanoPreset(QPixmap&)),
+            panoPreset, SLOT(receievePreset_1(QPixmap&)));
     connect(panoPreset, SIGNAL(sendMedian(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
 

@@ -1,16 +1,13 @@
 #include "dentalimageview.h"
 #include "histogram.h"
 
-#include <QDragEnterEvent>
-#include <QMimeData>
 #include <QFile>
 #include <QEvent>
 #include <QFileDialog>
-
+#include <QMessageBox>
 
 DentalImageView::DentalImageView()
 {
-    setAcceptDrops(true);   //Drag & Drop true
 
     m_layout.addWidget(&m_area, 0, 0, 1, 5);
     m_layout.addWidget(&m_zoomOut, 1, 0);
@@ -23,8 +20,7 @@ DentalImageView::DentalImageView()
     m_area.setWidget(m_imageLabel);
     m_imageLabel->setScaledContents(true);
 
-    m_imageLabel->setStyleSheet("border: none;");
-    m_scaleLabel.setStyleSheet("border: none;");
+    updateStyleSheet();
 
     connect(&m_zoomIn, &QPushButton::clicked, [this]{
         if(m_scaleLabel.text() !="")
@@ -45,12 +41,18 @@ DentalImageView::DentalImageView()
     });
 
     connect(&m_histo, &QPushButton::clicked, [this]{
-        histogram = new Histogram();
-        connect(this, SIGNAL(sendHisto(QPixmap&)),
-                histogram, SLOT(receiveHisto(QPixmap&)));
-        emit sendHisto(viewPixmap);
-        delete histogram;
+        if(viewPixmap.isNull()) {
+            return;
+        }
+        else{
+            histogram = new Histogram();
+            connect(this, SIGNAL(sendHisto(QPixmap&)),
+                    histogram, SLOT(receiveHisto(QPixmap&)));
+            emit sendHisto(viewPixmap);
+            delete histogram;
+        }
     });
+
 }
 
 void DentalImageView::scaleImage(double factor)
@@ -60,55 +62,17 @@ void DentalImageView::scaleImage(double factor)
     QSize size = m_imageLabel->pixmap().size() * m_scaleFactor;
     m_imageLabel->resize(size);
 }
-/********************************************************************************************/
-void DentalImageView::dragEnterEvent(QDragEnterEvent* event)
-{
-    event->acceptProposedAction();
-}
-
-void DentalImageView::dragMoveEvent(QDragMoveEvent* event)
-{
-    event->acceptProposedAction();
-}
-
-void DentalImageView::dropEvent(QDropEvent* event)
-{
-    const QMimeData* mimeData = event->mimeData();
-
-    m_imageLabel->setPixmap(QPixmap());
-    QPixmap pixmap;
-
-    if (mimeData->hasUrls())
-    {
-        QList<QUrl> paths = mimeData->urls();
-        foreach(QUrl path, paths) {
-            pixmap.load(path.toLocalFile());
-
-            QString fileName = path.toLocalFile();
-
-            if(!pixmap.isNull()) {
-                m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
-                scaleImage(1.0);
-
-                emit send(pixmap, fileName);
-
-                prevImg = pixmap.toImage();
-            }
-        }
-    }
-}
 
 /* panoramaForm 에서 로드 버튼 클릭 시 or 연산 후,  뷰로 픽스맵 데이터 전송하는 함수. */
 void DentalImageView::receiveLoadImg(QPixmap pixmap)
 {
     viewPixmap = pixmap.scaled(dentalViewWidth, dentalViewHeight);
-//    viewPixmap = pixmap;
-
     m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
     scaleImage(1.0);
 
     prevImg = pixmap.scaled(panoWidth, panoHeight).toImage();
 
+    emit sendPanoPrev(viewPixmap);
 }
 
 void DentalImageView::receiveResetPano(QPixmap& pixmap)
@@ -120,5 +84,52 @@ void DentalImageView::receiveResetPano(QPixmap& pixmap)
 void DentalImageView::receiveSavePano()
 {
     emit sendSave(prevImg);
+}
+
+void DentalImageView::updateStyleSheet()
+{
+    m_imageLabel->setStyleSheet("border: none;");
+    m_scaleLabel.setStyleSheet("border: none;");
+
+    m_zoomIn.setStyleSheet("QPushButton:hover\n"
+                           "{\n"
+                           "border: 2px solid red;\n"
+                           "background-color: rgb(103, 104, 114);\n"
+                           "}\n"
+                           "QPushButton:pressed\n"
+                           "{\n"
+                           "background-color: rgb(35,190,212);\n"
+                           "color: rgb(255, 255, 255);\n"
+                           "}\n");
+    m_zoomOut.setStyleSheet("QPushButton:hover\n"
+                           "{\n"
+                           "border: 2px solid red;\n"
+                           "background-color: rgb(103, 104, 114);\n"
+                           "}\n"
+                           "QPushButton:pressed\n"
+                           "{\n"
+                           "background-color: rgb(35,190,212);\n"
+                           "color: rgb(255, 255, 255);\n"
+                           "}\n");
+    m_histo.setStyleSheet("QPushButton:hover\n"
+                           "{\n"
+                           "border: 2px solid red;\n"
+                           "background-color: rgb(103, 104, 114);\n"
+                           "}\n"
+                           "QPushButton:pressed\n"
+                           "{\n"
+                           "background-color: rgb(35,190,212);\n"
+                           "color: rgb(255, 255, 255);\n"
+                           "}\n");
+    m_zoomReset.setStyleSheet("QPushButton:hover\n"
+                           "{\n"
+                           "border: 2px solid red;\n"
+                           "background-color: rgb(103, 104, 114);\n"
+                           "}\n"
+                           "QPushButton:pressed\n"
+                           "{\n"
+                           "background-color: rgb(35,190,212);\n"
+                           "color: rgb(255, 255, 255);\n"
+                           "}\n");
 }
 
