@@ -5,6 +5,7 @@
 #include <QImage>
 
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
+#define PI 3.1416926535f
 
 PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
     : QObject{parent}
@@ -33,6 +34,8 @@ void PanoValueAdjustment::receiveFile(QString file)
     sharpenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
     memset(sharpenImg, 0, sizeof(unsigned char) * imageSize);
 
+    copyImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     set3x3MaskValue();  // 영상의 Mask 값 구함
 
     for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
@@ -40,52 +43,77 @@ void PanoValueAdjustment::receiveFile(QString file)
     }
 
     avg = avg/imageSize;
-
 }
-
-void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, int sbValue)
+/* 현재 기준 이미지 설정 */
+void PanoValueAdjustment::setImg(){
+    if(presetImg_1.isNull()){
+        currentImg = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+        inimg = currentImg.bits();
+    }
+    else {
+        currentImg = presetImg_1.convertToFormat(QImage::Format_Grayscale8);
+        inimg = currentImg.bits();
+        qDebug() << presetImg_1 <<__LINE__;
+    }
+}
+void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, int sbValue, int deNoiseValue)
 {
-    QImage image = defaultImg;
+    QImage image;
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
 
+    setImg();
+
+    float contrast;
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
-
     /* 밝기값만 조정되는 case */
-    if(contrastValue == 0 && sbValue == 0){
+    if(contrastValue == 0 && sbValue == 0 && deNoiseValue == 0){
         int value =  brightValue / 2.5;
         for(int i = 0; i < imageSize; i ++){
             *(outimg + i) = LIMIT_UBYTE( *(inimg + i) + value );
         }
     }
     /* 대비값만 조정되는 case */
-    else if(brightValue == 0 && sbValue == 0){
+    else if(brightValue == 0 && sbValue == 0 && deNoiseValue == 0){
         if (contrastValue > 0) {
-
-            float contrast = (100.0+contrastValue/2)/100.0;
+            contrast = (100.0+contrastValue/2)/100.0;
             for(int i = 0; i < imageSize; i ++){
-                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
+                *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
+            }
+        }
+        else if(contrastValue == 0) {
+            contrast = 1;
+            for(int i = 0; i < imageSize; i ++){
+                *(outimg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)-avg) * contrast)  + brightValue );
             }
         }
         else {
             contrastValue *= 0.5;
-            float contrast = (50.0+contrastValue/2)/50.0;
+            contrast = (100.0+contrastValue/2)/100.0;
             for(int i = 0; i < imageSize; i ++){
-                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
+                *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
         }
     }
     /* 필터값만 조정되는 case */
-    else if(brightValue == 0 && contrastValue == 0){
+    else if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0){
         switch(sbValue) {
+        case -6:
+            gaussian(3.0);
+            break;
+        case -5:
+            gaussian(2.5);
+            break;
         case -4:
+            gaussian(2.0);
             break;
         case -3:
-            blur5x5();
+            gaussian(1.5);
             break;
         case -2:
-            blur3x3(sbValue);
+            gaussian(1.0);
             break;
         case -1:
-            blur3x3(sbValue);
+            gaussian(0.5);
             break;
         case 0:
             prevImg = defaultImg;
@@ -97,55 +125,173 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
         image = prevImg;
     }
 
-    /* 두값 or 세 값이 조정되는 case */
+    /* DeNoising 만 조정되는 case */
+    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0) {
+        int adfValue = 2 * deNoiseValue;
+
+        switch(deNoiseValue) {
+        case 0:
+            prevImg = defaultImg;
+            break;
+        case 1:
+            ADFilter(adfValue);
+            break;
+        default:
+            ADFilter(adfValue);
+            break;
+        }
+        image = prevImg;
+    }
+
+    /* 두 값 or 세 값, 네 값이 조정되는 case */
     else{
-        if(sbValue != 0){
-            switch(sbValue) {
-            case -4:
-                break;
-            case -3:
-                blur5x5();
-                break;
-            case -2:
-                blur3x3(sbValue);
-                break;
-            case -1:
-                blur3x3(sbValue);
-                break;
-            default:
-                highBoost(sbValue);
-                break;
-            }
-            image = prevImg;
-            sharpenImg = image.bits();  //sharpen한 연산 결과가져를 옴.
-            if (contrastValue > 0) {
-                float contrast = (50.0+contrastValue/2)/50.0;
-                for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + brightValue );
+        int value =  brightValue / 2.5;
+        if(deNoiseValue == 0){  // deNoising이 조정되지 않을 경우
+            if(sbValue != 0){   // unsharp이 조정된 경우
+                switch(sbValue) {
+                case -6:
+                    gaussian(3.0);
+                    break;
+                case -5:
+                    gaussian(2.5);
+                    break;
+                case -4:
+                    gaussian(2.0);
+                    break;
+                case -3:
+                    gaussian(1.5);
+                    break;
+                case -2:
+                    gaussian(1.0);
+                    break;
+                case -1:
+                    gaussian(0.5);
+                    break;
+                default:
+                    highBoost(sbValue);
+                    break;
+                }
+                image = prevImg;
+                sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
+                if (contrastValue > 0) {
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                    }
+                }
+                else if(contrastValue == 0) {
+                    contrast = 1;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                    }
+                }
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value);
+                    }
                 }
             }
-            else {
-                contrastValue *= 0.5;
-                float contrast = (50.0+contrastValue/2)/50.0;
-                for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + brightValue);
+            else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
+                if (contrastValue > 0) {
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value );
+                    }
+                }
+                else if(contrastValue == 0) {
+                    contrast = 1;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)- avg) * contrast)  + value );
+                    }
+                }
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value);
+                    }
                 }
             }
         }
-        else if(sbValue == 0){
-            if (contrastValue > 0) {
-                float contrast = (50.0+contrastValue)/50.0;
-                for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( 128 + (*(inimg+i)-128) *contrast  + brightValue );
+        else { //deNoising 이 조정 된 경우
+
+            int adfValue = 2 * deNoiseValue;
+
+            if(sbValue != 0){   // unsharp이 조정된 경우
+                switch(sbValue) {
+                case -6:
+                    gaussian(3.0);
+                    break;
+                case -5:
+                    gaussian(2.5);
+                    break;
+                case -4:
+                    gaussian(2.0);
+                    break;
+                case -3:
+                    gaussian(1.5);
+                    break;
+                case -2:
+                    gaussian(1.0);
+                    break;
+                case -1:
+                    gaussian(0.5);
+                    break;
+                default:
+                    highBoost(sbValue);
+                    break;
                 }
-            }
-            else {
-                contrastValue *= 0.5;
-                float contrast = (50.0+contrastValue)/50.0;
-                for(int i = 0; i < imageSize; i ++){
-                     *(outimg + i) = LIMIT_UBYTE( 128 + (*(inimg+i)-128) *contrast  + brightValue);
+                image = prevImg;
+                sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
+                if (contrastValue > 0) {
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                    }
                 }
+                else if(contrastValue == 0) {
+                    contrast = 1;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                    }
+                }
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value);
+                    }
+                }
+
+                ADFilter(copyImg, adfValue);
+                image = prevImg;
             }
+            else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
+                if (contrastValue > 0) {
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast  + value );
+                    }
+                }
+                else if(contrastValue == 0) {
+                    contrast = 1;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)-avg) * contrast)  + value );
+                    }
+                }
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                    for(int i = 0; i < imageSize; i ++){
+                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value);
+                    }
+                }
+                ADFilter(copyImg, adfValue);
+                image = prevImg;
+            }
+
         }
 
     }
@@ -154,18 +300,17 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);
 }
+
 void PanoValueAdjustment::set3x3MaskValue(){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(mask, 0, sizeof(unsigned char) * imageSize);
 
     double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
-                           {1/9.0, 1/9.0, 1/9.0},
-                           {1/9.0, 1/9.0, 1/9.0}};
-//    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
-//                           {-1, 9, -1},
-//                           {-1, -1, -1}};
-
-
+                            {1/9.0, 1/9.0, 1/9.0},
+                            {1/9.0, 1/9.0, 1/9.0}};
+    //    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
+    //                           {-1, 9, -1},
+    //                           {-1, -1, -1}};
     int arr[9] = {0};
 
 
@@ -439,7 +584,6 @@ void PanoValueAdjustment::blur3x3(int sbValue){
                     sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*rowSize) ];
                 }
             }
-            //outimg[(widthCnt+heightCnt*rowSize) ] = LIMIT_UBYTE(sum);
             *(outimg + i) = LIMIT_UBYTE(sum);
         }
     }   //for문 i imageSize
@@ -559,7 +703,7 @@ void PanoValueAdjustment::blur5x5(){
                     sum += blur[i+2][j+2]*arr[cnt++];
                 }
             }
-             *(outimg + i) = LIMIT_UBYTE(sum);
+            *(outimg + i) = LIMIT_UBYTE(sum);
         }
         //LeftSide
         else if(widthCnt==1){
@@ -1002,19 +1146,304 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
     }
 
     //histogram
-      for (int i = 0, sum = 0; i < 256; i++){
-          sum += histo[i];
-          sum_of_h[i] = sum;
-      }
+    for (int i = 0, sum = 0; i < 256; i++){
+        sum += histo[i];
+        sum_of_h[i] = sum;
+    }
 
-      /* constant = new # of gray levels div by area */
-      constant = (float)(256) / (float)(height * width);
-      for (int i = 0; i < imageSize; i++) {
-          k = outimg[i];
-          outimg[i] = LIMIT_UBYTE( sum_of_h[k] * constant );
-      }
+    /* constant = new # of gray levels div by area */
+    constant = (float)(256) / (float)(height * width);
+    for (int i = 0; i < imageSize; i++) {
+        k = outimg[i];
+        outimg[i] = LIMIT_UBYTE( sum_of_h[k] * constant );
+    }
 
-      image = QImage(outimg, width, height, QImage::Format_Grayscale8);
-      pixmap = pixmap.fromImage(image);
-      emit panoImgSend(pixmap);
+    image = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    pixmap = pixmap.fromImage(image);
+    emit panoImgSend(pixmap);
+}
+
+
+void PanoValueAdjustment::gaussian(float sigma){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    float* pBuf;
+    pBuf = (float*)malloc(sizeof(float) * width * height);
+
+    int i, j, k, x;
+
+    int dim = static_cast<int>(2 * 4 * sigma + 1.0);
+
+    if (dim < 3) dim = 3;
+    if (dim % 2 == 0) dim++;
+    int dim2 = dim / 2;
+
+    float* pMask = new float[dim];
+
+    for (i = 0; i < dim; i++) {
+        x = i - dim2;
+        pMask[i] = exp(-(x*x) / (2 * sigma * sigma)) / (sqrt(2 * PI) * sigma);
+    }
+
+    float sum1, sum2;
+
+    for (i = 0; i < width; i++) {
+        for (j = 0; j < height; j++) {
+
+            sum1 = sum2 = 0.f;
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + j;
+                if (x>= 0 && x <height) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * inimg[x + i*height]);
+                }
+            }
+            pBuf[j+ i*height] = sum2 / sum1;
+        }
+    }
+
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            sum1 = sum2 = 0.f;
+
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + i;
+                if ( x>= 0 && x < width) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * pBuf[j*width + x]);
+                }
+            }
+            outimg[i + j * width] = sum2 / sum1;
+        }
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+
+    free(pBuf);
+    delete[] pMask;
+}
+
+void PanoValueAdjustment::ADFilter(unsigned char * inimg, int iter){    //deNoising , 다른 연산 수행 함수
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    float lambda = 0.25;
+    float k = 4;
+
+    QImage copyImage;
+    copyImage = QImage(inimg,width,height,QImage::Format_Grayscale8);
+
+    const uchar* copy = copyImage.bits();
+
+    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
+    int i;
+    float gradn, grads, grade, gradw;
+    float gcn, gcs, gce, gcw;
+    float k2 = k * k;
+
+    for (i = 0; i < iter; i++)
+    {
+        int widthCnt = 0, heightCnt = -1;
+        for (int i = 0; i < imageSize; i += 1) {
+            widthCnt = i % width;
+            if(i % width == 0) heightCnt++;
+
+            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
+            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
+
+            gcn = gradn / (1.0f + gradn * gradn / k2);
+            gcs = grads / (1.0f + grads * grads / k2);
+            gce = grade / (1.0f + grade * grade / k2);
+            gcw = gradw / (1.0f + gradw * gradw / k2);
+
+            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
+        }
+        if (i < iter - 1)
+            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+
+void PanoValueAdjustment::ADFilter(int iter){   //deNoising만 수행하는 함수
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    float lambda = 0.25;
+    float k = 4;
+
+    QImage copyImage;
+    copyImage = image;
+    const uchar* copy = copyImage.bits();
+
+    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
+    int i;
+    float gradn, grads, grade, gradw;
+    float gcn, gcs, gce, gcw;
+    float k2 = k * k;
+
+    for (i = 0; i < iter; i++)
+    {
+        int widthCnt = 0, heightCnt = -1;
+        for (int i = 0; i < imageSize; i += 1) {
+            widthCnt = i % width;
+            if(i % width == 0) heightCnt++;
+
+            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
+            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
+
+            gcn = gradn / (1.0f + gradn * gradn / k2);
+            gcs = grads / (1.0f + grads * grads / k2);
+            gce = grade / (1.0f + grade * grade / k2);
+            gcw = gradw / (1.0f + gradw * gradw / k2);
+
+            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
+        }
+
+        if (i < iter - 1)
+            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+
+void PanoValueAdjustment::sharpen(int value)// 세팔로 샤픈 임시 저장
+{
+    float mask = -(value/4);
+    float median = value + 1;
+    float kernel[3][3] = { {0, mask, 0},
+                           {mask, median, mask},
+                           {0, mask, 0}};
+
+    int arr[9] = {0};
+
+    int imageSize = width * height;
+
+    int widthCnt = 0, heightCnt = -1, cnt = 0;
+    for(int i = 0; i < imageSize; i ++){
+        widthCnt = i % width;
+        if(i % width == 0) heightCnt++;
+
+        if(widthCnt==0){
+            //LeftUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
+            }
+            //LeftDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+            }
+            else{
+                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+            }
+
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+        }
+
+        else if( widthCnt==(width*1 -1) ){
+            //RightUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+            }
+            //RightDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+            }
+            else{
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+            }
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+        }
+        else if(heightCnt==0){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else if( heightCnt ==(height -1) ){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+            }
+        }
+
+        else{
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                }
+            }
+            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
+        }
+    }
+}
+
+void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap, int preset){
+    qDebug()<<__FUNCTION__ << __LINE__ <<prePixmap << preset;
+
+    presetImg_1 = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
+
 }

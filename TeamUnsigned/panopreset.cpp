@@ -5,137 +5,336 @@
 #include <QPixmap>
 
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
+#define PI 3.1416926535f
 
 PanoPreset::PanoPreset(QObject *parent)
     : QObject{parent}
 {
-
 }
+void PanoPreset::receiveFile(QString file){
+    pixmap.load(file);
+    defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 
-void PanoPreset::insertion(int a[], int n){
-    int i, j;
-    for (i = 1; i < n; i++) {
-        int tmp = a[i];
-        for (j = i; j > 0 && a[j - 1] > tmp; j--)
-            a[j] = a[j - 1];
-        a[j] = tmp;
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+
+    inimg = image.bits();
+
+    width = image.width();
+    height = image.height();
+    imageSize = width * height;
+
+    outimg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    mask = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(mask, 0, sizeof(unsigned char) * imageSize);
+
+    sharpenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(sharpenImg, 0, sizeof(unsigned char) * imageSize);
+
+    copyImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    set3x3MaskValue();  // 영상의 Mask 값 구함
+
+    for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
+        avg += inimg[i];
     }
+
+    avg = avg/imageSize;
+
+    setPreset_1();
 }
 
-void PanoPreset::receievePreset_1(QPixmap& pixmap){
-    QImage image(pixmap.toImage().convertToFormat(QImage::Format_Grayscale8));
-    int width = image.width();
-    int height = image.height();
+void PanoPreset::receievePreset(int preset){
+    if(preset == 1){
+        pixmap = pixmap.fromImage(presetImg_1);
+    }
 
-    QImage *filterImage = new QImage(image.width(), image.height(), QImage::Format_Grayscale8);
-    filterImage->fill(0);
-    outimg = filterImage->bits();
+    emit panoPresetSend(pixmap);
+    emit panoPresetAdj(pixmap, preset);
+}
 
-    const uchar* inimg = image.bits();
+void PanoPreset::setPreset_1(){
+    // bright : -20
+    // contrast : 50
+    // sb : 4
+    // DeNoising : 3
+    QImage image;
 
-    int arr[9] = {0,};
-    int rowSize = width ;
-    int imageSize = rowSize * height;
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    int widthCnt = 0, heightCnt = -1, cnt = 0;
+    int brightValue = -20;
+    int sbValue = 4;
+    int contrastValue = 50;
+    int deNoiseValue = 3;
 
-    for (int i = 0; i < imageSize; i++) {
-        widthCnt = i % width;
-        if (i % width == 0) heightCnt++;
+    int bright = brightValue / 2.5;
+    int adfValue = 2 * deNoiseValue;
+    float contrast;
 
-        if (widthCnt == 0) {
-            //좌측 상단 Vertex
-            if (heightCnt == 0) {
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[2] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
-            }
-            //좌측 하단 Vertex
-            else if (heightCnt == height - 1) {
-                arr[0] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt + ((heightCnt * rowSize))];
-                arr[8] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-            }
-            else {
-                arr[0] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
-            }
+    highBoost(sbValue); // 4
 
-            insertion(arr, 9);
-            outimg[(widthCnt + heightCnt * rowSize)] = arr[4];
-        }
-        else if (widthCnt == (rowSize - 1)) {
-            //우측 상단 Vertex
-            if (heightCnt == 0) {
-                arr[0] = arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[7] = arr[8] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-            }
-            //우측 하단 Vertex
-            else if (heightCnt == height - 1) {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[1] = arr[2] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt + (heightCnt * rowSize)];
-            }
-            else {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[5] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt + 1) * rowSize)];
-                arr[8] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-            }
+    image = prevImg;
+    sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
 
-            insertion(arr, 9);
-            outimg[(widthCnt + heightCnt * rowSize)] = arr[4];
-        }
-        else if (heightCnt == 0) {
-            if (widthCnt != 1 && widthCnt != rowSize - 1) {
-                arr[0] = arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[1] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[2] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt + 1) * rowSize)];
-                arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
-            }
-            insertion(arr, 9);
-            outimg[(widthCnt + heightCnt * rowSize)] = arr[4];
-        }
-        else if (heightCnt == (height - 1)) {
-            if (widthCnt != 1 && widthCnt != rowSize - 1) {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[4] = arr[7] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[5] = arr[8] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-            }
+    contrast = (100.0+contrastValue/2)/100.0;
 
-            insertion(arr, 9);
-            outimg[(widthCnt + heightCnt * rowSize)] = arr[4];
-        }
-        else {
-            cnt = 0;
-            for (int i = -1; i < 2; i++) {
-                for (int j = -1; j < 2; j++) {
-                    arr[cnt++] = inimg[((widthCnt + i) + (heightCnt + j) * width)];
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + bright );
+    }
+
+    ADFilter(copyImg, adfValue);
+
+    presetImg_1 = prevImg;
+
+    //image = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+
+void PanoPreset::gaussian(float sigma){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    float* pBuf;
+    pBuf = (float*)malloc(sizeof(float) * width * height);
+
+    int i, j, k, x;
+
+    int dim = static_cast<int>(2 * 4 * sigma + 1.0);
+
+    if (dim < 3) dim = 3;
+    if (dim % 2 == 0) dim++;
+    int dim2 = dim / 2;
+
+    float* pMask = new float[dim];
+
+    for (i = 0; i < dim; i++) {
+        x = i - dim2;
+        pMask[i] = exp(-(x*x) / (2 * sigma * sigma)) / (sqrt(2 * PI) * sigma);
+    }
+
+    float sum1, sum2;
+
+    for (i = 0; i < width; i++) {
+        for (j = 0; j < height; j++) {
+
+            sum1 = sum2 = 0.f;
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + j;
+                if (x>= 0 && x <height) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * inimg[x + i*height]);
                 }
             }
-            insertion(arr, 9);
-            outimg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            pBuf[j+ i*height] = sum2 / sum1;
         }
-    }   //for문 i, imageSize
+    }
 
-    QPixmap medianPixmap;
-    medianPixmap = medianPixmap.fromImage(filterImage->convertToFormat(QImage::Format_RGB32));
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            sum1 = sum2 = 0.f;
 
-    emit sendMedian(medianPixmap);
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + i;
+                if ( x>= 0 && x < width) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * pBuf[j*width + x]);
+                }
+            }
+            outimg[i + j * width] = sum2 / sum1;
+        }
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+
+    free(pBuf);
+    delete[] pMask;
+}
+
+void PanoPreset::highBoost(int sbValue){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    int sharpen = sbValue * 2.5;
+
+    for (int i = 0; i < imageSize; i += 1) {
+        *(outimg + i) = LIMIT_UBYTE ( *(inimg + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+void PanoPreset::ADFilter(unsigned char* inimg ,int iter){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    float lambda = 0.25;
+    float k = 4;
+
+    QImage copyImage;
+    copyImage = QImage(inimg,width,height,QImage::Format_Grayscale8);
+
+    const uchar* copy = copyImage.bits();
+
+    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
+    int i;
+    float gradn, grads, grade, gradw;
+    float gcn, gcs, gce, gcw;
+    float k2 = k * k;
+
+    for (i = 0; i < iter; i++)
+    {
+        int widthCnt = 0, heightCnt = -1;
+        for (int i = 0; i < imageSize; i += 1) {
+            widthCnt = i % width;
+            if(i % width == 0) heightCnt++;
+
+            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
+            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
+            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
+
+            gcn = gradn / (1.0f + gradn * gradn / k2);
+            gcs = grads / (1.0f + grads * grads / k2);
+            gce = grade / (1.0f + grade * grade / k2);
+            gcw = gradw / (1.0f + gradw * gradw / k2);
+
+            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
+        }
+        if (i < iter - 1)
+            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
+    }
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+
+void PanoPreset::set3x3MaskValue(){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(mask, 0, sizeof(unsigned char) * imageSize);
+
+    double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
+                            {1/9.0, 1/9.0, 1/9.0},
+                            {1/9.0, 1/9.0, 1/9.0}};
+    //    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
+    //                           {-1, 9, -1},
+    //                           {-1, -1, -1}};
+    int arr[9] = {0};
+
+
+    int widthCnt = 0, heightCnt = -1, cnt = 0;
+    for(int i = 0; i < imageSize; i ++){
+        widthCnt = i % width;
+        if(i % width == 0) heightCnt++;
+
+        if(widthCnt==0){
+            //LeftUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
+            }
+            //LeftDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+            }
+            else{
+                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+            }
+
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg + i) = LIMIT_UBYTE(sum);
+            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
+        }
+
+        else if( widthCnt==(width*1 -1) ){
+            //RightUpVertex
+            if(heightCnt==0){
+                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+            }
+            //RightDownVertex
+            else if(heightCnt==height-1){
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+            }
+            else{
+                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+            }
+            cnt=0;
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
+            }
+            *(outimg + i ) = LIMIT_UBYTE(sum);
+            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+        }
+        else if(heightCnt==0){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+                *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            }
+        }
+        else if( heightCnt ==(height -1) ){
+            if( widthCnt!=1 && widthCnt!=width-1 ){
+                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+                cnt=0;
+                float sum = 0.0;
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
+                }
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+                *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            }
+        }
+        else{
+            float sum = 0.0;
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                }
+            }
+            *(outimg + i) = LIMIT_UBYTE(sum);
+            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+        }
+    }
 }

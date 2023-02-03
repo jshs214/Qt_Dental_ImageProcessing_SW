@@ -154,7 +154,7 @@ border: 1px solid gray;</string>
               </size>
              </property>
              <property name="text">
-              <string>MEDIAN</string>
+              <string>PRESET 1</string>
              </property>
             </widget>
            </item>
@@ -453,6 +453,9 @@ border: 1px solid gray;</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
+               </property>
+               <property name="readOnly">
+                <bool>true</bool>
                </property>
                <property name="placeholderText">
                 <string>50</string>
@@ -755,6 +758,9 @@ background-color: rgb(103, 104, 114);
                </property>
                <property name="alignment">
                 <set>Qt::AlignCenter</set>
+               </property>
+               <property name="readOnly">
+                <bool>true</bool>
                </property>
                <property name="placeholderText">
                 <string>50</string>
@@ -1168,10 +1174,10 @@ background-color: rgb(103, 104, 114);
                 </size>
                </property>
                <property name="minimum">
-                <number>-4</number>
+                <number>-6</number>
                </property>
                <property name="maximum">
-                <number>4</number>
+                <number>6</number>
                </property>
                <property name="pageStep">
                 <number>1</number>
@@ -1411,7 +1417,7 @@ background-color: rgb(103, 104, 114);
               </spacer>
              </item>
              <item>
-              <widget class="QPushButton" name="sharpenButton_3">
+              <widget class="QPushButton" name="deNoiseMinusButton">
                <property name="minimumSize">
                 <size>
                  <width>20</width>
@@ -1496,7 +1502,7 @@ background-color: rgb(103, 104, 114);
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="blurButton_3">
+              <widget class="QPushButton" name="deNoisePlusButton">
                <property name="minimumSize">
                 <size>
                  <width>20</width>

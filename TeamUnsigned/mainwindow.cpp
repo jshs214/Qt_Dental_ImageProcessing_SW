@@ -44,8 +44,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoValueAdjustment, SLOT(receiveFile(QString)));
     /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int)),
-            panoValueAdjustment, SLOT(changePanoValue(int, int, int)));
+    connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int, int)),
+            panoValueAdjustment, SLOT(changePanoValue(int, int, int, int)));
     /* 밝기, 대조, 블러 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
@@ -54,10 +54,15 @@ MainWindow::MainWindow(QWidget *parent)
             panoValueAdjustment, SLOT(receivePrev(QPixmap&)));
 
     /* Preset SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoPreset(QPixmap&)),
-            panoPreset, SLOT(receievePreset_1(QPixmap&)));
-    connect(panoPreset, SIGNAL(sendMedian(QPixmap&)),
+    connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
+            panoPreset, SLOT(receiveFile(QString)));
+    connect(panoramaForm, SIGNAL(sendPanoPreset(int)),
+            panoPreset, SLOT(receievePreset(int)));
+    connect(panoPreset, SIGNAL(panoPresetSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
+    /* preset 연산을 위한 이미지 설정 변경 SIGNAL/SLOT  */
+    connect(panoPreset, SIGNAL(panoPresetAdj(QPixmap&, int)),
+            panoValueAdjustment, SLOT(receiveSetPresetImg(QPixmap&, int)));
 
 
     /* cephalo SIGNAL/SLOT */

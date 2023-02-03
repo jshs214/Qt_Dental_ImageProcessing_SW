@@ -27,14 +27,6 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
 
     imageWidth = 1125 ,imageHeight = 611;
 
-    // 정수형 0~100까지만 입력가능한 QValidator 정의
-    QValidator *validator = new QIntValidator(-100, 100, this);
-    // lineEdit에 validator 설정
-    ui->brightLineEdit->setValidator(validator);
-    ui->contrastLineEdit->setValidator(validator);
-    QValidator *sbValidator = new QIntValidator(-4, 4, this);
-    ui->sbLineEdit->setValidator(sbValidator);
-
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
 
@@ -70,11 +62,13 @@ void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
 {
     QPixmap pixmap;
 
-    if(ui->pathLineEdit->text() != "")
+    if(defaultPixmap.isNull())  return;
+    else
     {
-        int contrastValue = ui->contrastSlider->value();
-        int sbValue = ui->sbSlider->value();
-        emit sendPanoValue(brightValue , contrastValue, sbValue);
+        contrastValue = ui->contrastSlider->value();
+        sbValue = ui->sbSlider->value();
+        deNoiseValue = ui->deNoiseSlider->value();
+        emit sendPanoValue(brightValue , contrastValue, sbValue, deNoiseValue);
     }
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
 }
@@ -83,20 +77,27 @@ void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
 
 void PanoramaForm::on_brightMinusButton_clicked()
 {
-    brightValue = ui->brightSlider->value();
-    brightValue -= 10;
-    if(brightValue < -100) return;
-    ui->brightSlider->setValue(brightValue);
-    ui->brightLineEdit->setText( QString::number(brightValue) );
+    if(defaultPixmap.isNull())  return;
+    else {
+        brightValue = ui->brightSlider->value();
+        brightValue -= 10;
+        if(brightValue < -100) return;
+        ui->brightSlider->setValue(brightValue);
+        ui->brightLineEdit->setText( QString::number(brightValue) );
+    }
 }
 
 void PanoramaForm::on_brightPlusButton_clicked()
 {
-    brightValue = ui->brightSlider->value();
-    brightValue += 10;
-    if(brightValue > 100) return;
-    ui->brightSlider->setValue(brightValue);
-    ui->brightLineEdit->setText( QString::number(brightValue) );
+    if(defaultPixmap.isNull())  return;
+    else {
+        brightValue = ui->brightSlider->value();
+        brightValue += 10;
+        if(brightValue > 100) return;
+        ui->brightSlider->setValue(brightValue);
+        ui->brightLineEdit->setText( QString::number(brightValue) );
+
+    }
 }
 
 void PanoramaForm::on_brightLineEdit_textChanged(const QString &brightString)
@@ -108,36 +109,45 @@ void PanoramaForm::on_brightLineEdit_textChanged(const QString &brightString)
 
 /********************************************************************************************/
 void PanoramaForm::on_contrastSlider_valueChanged(int contrastValue)
-{
+{   if(defaultPixmap.isNull())  return;
+
     QPixmap pixmap;
     QImage image = defaultImg;
 
-    int brightValue = ui->brightSlider->value();
-    int sbValue = ui->sbSlider->value();
-    if(ui->pathLineEdit->text() != "")
-    {
-        emit sendPanoValue(brightValue , contrastValue, sbValue);
-    }
+    brightValue = ui->brightSlider->value();
+    sbValue = ui->sbSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
+
+    emit sendPanoValue(brightValue , contrastValue, sbValue, deNoiseValue);
+
 
     ui->contrastLineEdit->setText( QString::number(ui->contrastSlider->value()) );
-}
 
+}
 void PanoramaForm::on_contrastMinusButton_clicked()
 {
-    contrastValue = ui->contrastSlider->value();
-    contrastValue -= 10;
-    if(contrastValue < -100) return;
-    ui->contrastSlider->setValue(contrastValue);
-    ui->contrastLineEdit->setText( QString::number(contrastValue) );
+    if(defaultPixmap.isNull())  return;
+    else {
+        contrastValue = ui->contrastSlider->value();
+        contrastValue -= 10;
+        if(contrastValue < -100) return;
+        ui->contrastSlider->setValue(contrastValue);
+        ui->contrastLineEdit->setText( QString::number(contrastValue) );
+
+    }
 }
 
 void PanoramaForm::on_contrastPlusButton_clicked()
 {
-    contrastValue = ui->contrastSlider->value();
-    contrastValue += 10;
-    if(contrastValue > 100) return;
-    ui->contrastSlider->setValue(contrastValue);
-    ui->contrastLineEdit->setText( QString::number(contrastValue) );
+    if(defaultPixmap.isNull())  return;
+    else {
+        contrastValue = ui->contrastSlider->value();
+        contrastValue += 10;
+        if(contrastValue > 100) return;
+        ui->contrastSlider->setValue(contrastValue);
+        ui->contrastLineEdit->setText( QString::number(contrastValue) );
+
+    }
 }
 
 void PanoramaForm::on_contrastLineEdit_textChanged(const QString &contrastString)
@@ -150,24 +160,24 @@ void PanoramaForm::on_contrastLineEdit_textChanged(const QString &contrastString
 /********************************************************************************************/
 void PanoramaForm::on_sharpenButton_clicked()
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
     sbValue = ui->sbSlider->value();
     sbValue--;
 
-    if(sbValue < -4) return;
+    if(sbValue < -6) return;
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
 
 void PanoramaForm::on_blurButton_clicked()
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
     sbValue = ui->sbSlider->value();
     sbValue++;
 
-    if(sbValue > 4) return;
+    if(sbValue > 6) return;
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
@@ -175,23 +185,62 @@ void PanoramaForm::on_blurButton_clicked()
 
 void PanoramaForm::on_sbSlider_valueChanged(int sbValue)
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
-    int brightValue = ui->brightSlider->value();
-    int contrastValue = ui->contrastSlider->value();
+    brightValue = ui->brightSlider->value();
+    contrastValue = ui->contrastSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
 
-    emit sendPanoValue(brightValue , contrastValue, sbValue);
+    emit sendPanoValue(brightValue , contrastValue, sbValue, deNoiseValue);
 
     ui->sbLineEdit->setText( QString::number(ui->sbSlider->value()) );
+}
+void PanoramaForm::on_deNoisePlusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+    deNoiseValue = ui->deNoiseSlider->value();
+    deNoiseValue++;
+
+    if(deNoiseValue > 10) return;
+    ui->deNoiseSlider->setValue(deNoiseValue);
+    ui->deNoiseLineEdit->setText( QString::number(deNoiseValue) );
+}
+
+void PanoramaForm::on_deNoiseMinusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+    deNoiseValue = ui->deNoiseSlider->value();
+    deNoiseValue--;
+
+    if(deNoiseValue < 0) return;
+    ui->deNoiseSlider->setValue(deNoiseValue);
+    ui->deNoiseLineEdit->setText( QString::number(deNoiseValue) );
+
+}
+void PanoramaForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
+{
+    if(defaultPixmap.isNull())  return;
+    brightValue = ui->brightSlider->value();
+    contrastValue = ui->contrastSlider->value();
+    sbValue = ui->sbSlider->value();
+
+    emit sendPanoValue(brightValue, contrastValue, sbValue, deNoiseValue);
+
+    ui->deNoiseLineEdit->setText( QString::number(ui->deNoiseSlider->value()) );
+    \
 }
 
 
 /********************************************************************************************/
 void PanoramaForm::on_preset_Button1_clicked()
 {
-    int brightValue = ui->brightSlider->value();
-    int contrastValue = ui->contrastSlider->value();
-    int sbValue = ui->sbSlider->value();
+    int preset = 1;
+    brightValue = ui->brightSlider->value();
+    contrastValue = ui->contrastSlider->value();
+    sbValue = ui->sbSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
 
     /* preset button ui 초기화 */
     ui->preset_Button2->setStyleSheet("");
@@ -202,13 +251,10 @@ void PanoramaForm::on_preset_Button1_clicked()
     ui->preset_Button1->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
-    if(brightValue == 0 && contrastValue == 0 && sbValue == 0){
-        emit sendPanoPreset(defaultPixmap);
-    }
-    //QPixmap pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
-    else{
-        emit sendPanoPreset(prevPixmap);
-    }
+    if(defaultPixmap.isNull())  return;
+
+    emit sendPanoPreset(preset);
+
 }
 
 void PanoramaForm::on_preset_Button2_clicked()
@@ -280,26 +326,26 @@ void PanoramaForm::on_preset_Button6_clicked()
 /********************************************************************************************/
 void PanoramaForm::on_resetButton_clicked()
 {
-    if(defaultImg.isNull()){
+    if(defaultImg.isNull())
         return;
-    }
-    else{
-        ui->preset_Button1->setStyleSheet("");
-        ui->preset_Button2->setStyleSheet("");
-        ui->preset_Button3->setStyleSheet("");
-        ui->preset_Button4->setStyleSheet("");
-        ui->preset_Button5->setStyleSheet("");
-        ui->preset_Button6->setStyleSheet("");
 
-        ui->brightSlider->setValue(0);
-        ui->contrastSlider->setValue(0);
-        ui->sbSlider->setValue(0);
+    ui->preset_Button1->setStyleSheet("");
+    ui->preset_Button2->setStyleSheet("");
+    ui->preset_Button3->setStyleSheet("");
+    ui->preset_Button4->setStyleSheet("");
+    ui->preset_Button5->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
 
-        QPixmap pixmap;
-        pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
-        emit sendResetPano(pixmap);
-    }
+    QPixmap pixmap;
+    pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+
+    emit sendResetPano(pixmap);
+
 }
 
 
@@ -390,6 +436,8 @@ void PanoramaForm::panoImageSave(QImage& saveimg)
 
 void PanoramaForm::on_hePushButton_clicked()
 {
+    if(defaultPixmap.isNull()) return;
+
     /* preset Img가 있으면 preset, 없으면 원본 Img */
     if(prevPixmap.isNull())  emit sendPanoPrev(defaultPixmap);
     else emit sendPanoPrev(prevPixmap);

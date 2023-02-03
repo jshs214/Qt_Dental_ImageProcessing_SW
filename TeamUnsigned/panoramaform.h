@@ -57,6 +57,10 @@ private slots:
 
     void on_hePushButton_clicked();
 
+    void on_deNoisePlusButton_clicked();
+    void on_deNoiseMinusButton_clicked();
+    void on_deNoiseSlider_valueChanged(int value);
+
 private:
     Ui::PanoramaForm *ui;
     QFile* file;
@@ -71,18 +75,19 @@ private:
     int brightValue;
     int contrastValue;
     int sbValue;
+    int deNoiseValue;
 
 signals:
     void sendPanoView(QPixmap);
     void sendPanoAdj(QString);
 
-    void sendPanoValue(int, int, int);  //밝기, 대조, 필터 값
+    void sendPanoValue(int, int, int, int);  //밝기, 대조, 필터 값
 
     void sendResetPano(QPixmap&);
     void savePanoSignal();
 
     void sendPanoPrev(QPixmap&);
-    void sendPanoPreset(QPixmap&);
+    void sendPanoPreset(int);
 
 };
 
