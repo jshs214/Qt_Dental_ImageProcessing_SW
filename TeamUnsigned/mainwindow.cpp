@@ -6,7 +6,7 @@
 #include "panovalueadjustment.h"
 #include "cephvalueadjustment.h"
 #include "panopreset.h"
-
+#include "cephpreset.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -33,6 +33,10 @@ MainWindow::MainWindow(QWidget *parent)
     panoPreset = new PanoPreset(this);
     connect(panoPreset, SIGNAL(destroyed()),
             panoPreset, SLOT(deleteLater()));
+    cephPreset = new CephPreset(this);
+    connect(cephPreset, SIGNAL(destroyed()),
+            cephPreset, SLOT(deleteLater()));
+
 
     /* ui 설정 */
     ui->stackedWidget->insertWidget(0, panoramaForm);
@@ -40,20 +44,20 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->setCurrentIndex(0);
 
     /* panorama SIGNAL/SLOT */
-    /* Load 시, 밝기, 대조, 블러 이미지 경로 SIGNAL/SLOT */
+    /* Load 시, 이미지 경로 SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoValueAdjustment, SLOT(receiveFile(QString)));
-    /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
+    /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int, int)),
             panoValueAdjustment, SLOT(changePanoValue(int, int, int, int)));
-    /* 밝기, 대조, 블러 연산 결과 pixmap 반환 SIGNAL/SLOT */
+    /* 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
     /* 히스토 연산을 위한 SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoPrev(QPixmap&)),
             panoValueAdjustment, SLOT(receivePrev(QPixmap&)));
 
-    /* Preset SIGNAL/SLOT */
+    /* Preset 설정 SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
             panoPreset, SLOT(receiveFile(QString)));
     connect(panoramaForm, SIGNAL(sendPanoPreset(int)),
@@ -70,14 +74,25 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     /* cephalo SIGNAL/SLOT */
-    /* Load 시, 밝기, 대조, 블러 이미지 경로 SIGNAL/SLOT */
+    /* Load 시, 이미지 경로 SIGNAL/SLOT */
     connect(cephaloForm, SIGNAL(sendCephAdj(QString)),
             cephValueAdjustment, SLOT(receiveFile(QString)));
-    /* 밝기, 대조, 블러 Value SIGNAL/SLOT */
-    connect(cephaloForm, SIGNAL(sendCephValue(int, int)),
-            cephValueAdjustment, SLOT(changeCephValue(int, int)));
-    /* 밝기, 대조, 블러 연산 pixmap SIGNAL/SLOT */
+    /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
+    connect(cephaloForm, SIGNAL(sendCephValue(int, int, int, int)),
+            cephValueAdjustment, SLOT(changeCephValue(int, int, int, int)));
+    /* 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(cephValueAdjustment, SIGNAL(cephImgSend(QPixmap&)),
+            cephaloForm, SLOT(receieveImg(QPixmap&)));
+    /* 히스토 연산을 위한 SIGNAL/SLOT */
+    connect(cephaloForm, SIGNAL(sendCephPrev(QPixmap&)),
+            cephValueAdjustment, SLOT(receivePrev(QPixmap&)));
+
+    /* Preset 설정 SIGNAL/SLOT */
+    connect(cephaloForm, SIGNAL(sendCephAdj(QString)),
+            cephPreset, SLOT(receiveFile(QString)));
+    connect(cephaloForm, SIGNAL(sendCephPreset(int)),
+            cephPreset, SLOT(receievePreset(int)));
+    connect(cephPreset, SIGNAL(panoPresetSend(QPixmap&)),
             cephaloForm, SLOT(receieveImg(QPixmap&)));
 
 }

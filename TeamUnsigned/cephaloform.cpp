@@ -3,8 +3,6 @@
 
 #include <QLabel>
 #include <QLineEdit>
-#include <QDragEnterEvent>
-#include <QMimeData>
 #include <QFile>
 #include <QFileDialog>
 #include <QBuffer>
@@ -20,14 +18,6 @@ CephaloForm::CephaloForm(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // 정수형 0~100까지만 입력가능한 QValidator 정의
-    QValidator *validator = new QIntValidator(-100, 100, this);
-    // lineEdit에 validator 설정
-    ui->brightLineEdit->setValidator(validator);
-    ui->contrastLineEdit->setValidator(validator);
-    QValidator *sbValidator = new QIntValidator(-4, 4, this);
-    ui->sbLineEdit->setValidator(sbValidator);
-
     cephImageView = new CephImageView;
     cephImageView->setFixedSize(1020, 655);
     cephImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
@@ -38,25 +28,18 @@ CephaloForm::CephaloForm(QWidget *parent) :
 
     connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
 
-    /* Load Image SIGNAL/SLOT */
-    connect(cephImageView, SIGNAL(send(QPixmap,QString)),
-            this, SLOT(receieveDefaultImg(QPixmap,QString)));
-
+    /* Send CephaloImg to View*/
     connect(this, SIGNAL(sendCephView(QPixmap)),
             cephImageView, SLOT(receiveLoadImg(QPixmap)));
-
     /* Reset PanoImage SIGNAL/SLOT */
     connect(this, SIGNAL(sendResetCeph(QPixmap&)),
             cephImageView, SLOT(receiveResetCeph(QPixmap&)));
-
     /* SaveSignal SIGNAL/SLOT */
     connect(this, SIGNAL(saveCephSignal()),
             cephImageView, SLOT(receiveSaveCeph()));
     /* panoimg save 하기위한 SIGNAL/SLOT */
     connect(cephImageView, SIGNAL(sendSave(QImage&)),
             this, SLOT(cephImageSave(QImage&)));
-
-
 }
 
 CephaloForm::~CephaloForm()
@@ -68,16 +51,22 @@ void CephaloForm::on_brightSlider_valueChanged(int brightValue)
 {
     QPixmap pixmap;
 
-    if(ui->pathLineEdit->text() != "")
-    {
-        int contrastValue = ui->contrastSlider->value();
-        emit sendCephValue(brightValue , contrastValue);
-    }
+    if(defaultPixmap.isNull())  return;
+
+    contrastValue = ui->contrastSlider->value();
+    sbValue = ui->sbSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
+
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
+
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
+
 }
 
 void CephaloForm::on_brightMinusButton_clicked()
 {
+    if(defaultPixmap.isNull())  return;
+
     brightValue = ui->brightSlider->value();
     brightValue -= 10;
     if(brightValue < -100) return;
@@ -86,34 +75,36 @@ void CephaloForm::on_brightMinusButton_clicked()
 }
 void CephaloForm::on_brightPlusButton_clicked()
 {
+    if(defaultPixmap.isNull())  return;
+
     brightValue = ui->brightSlider->value();
     brightValue += 10;
     if(brightValue > 100) return;
     ui->brightSlider->setValue(brightValue);
     ui->brightLineEdit->setText( QString::number(brightValue) );
 }
-void CephaloForm::on_brightLineEdit_textChanged(const QString &brightString)
-{
-    brightValue = brightString.toInt();
-    ui->brightSlider->setValue(brightValue);
-}
 /********************************************************************************************/
 void CephaloForm::on_contrastSlider_valueChanged(int contrastValue)
 {
+    if(defaultPixmap.isNull())  return;
+
     QPixmap pixmap;
     QImage image = defaultImg;
 
-    int brightValue = ui->brightSlider->value();
+    brightValue = ui->brightSlider->value();
+    sbValue = ui->sbSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
 
-    if(ui->pathLineEdit->text() != "")
-    {
-        emit sendCephValue(brightValue , contrastValue);
-    }
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
+
+
     ui->contrastLineEdit->setText( QString::number(ui->contrastSlider->value()) );
 
 }
 void CephaloForm::on_contrastMinusButton_clicked()
 {
+    if(defaultPixmap.isNull())  return;
+
     contrastValue = ui->contrastSlider->value();
     contrastValue -= 10;
     if(contrastValue < -100) return;
@@ -122,57 +113,93 @@ void CephaloForm::on_contrastMinusButton_clicked()
 }
 void CephaloForm::on_contrastPlusButton_clicked()
 {
+    if(defaultPixmap.isNull())  return;
+
     contrastValue = ui->contrastSlider->value();
     contrastValue += 10;
     if(contrastValue > 100) return;
     ui->contrastSlider->setValue(contrastValue);
     ui->contrastLineEdit->setText( QString::number(contrastValue) );
 }
-void CephaloForm::on_contrastLineEdit_textChanged(const QString &contrastString)
-{
-    contrastValue = contrastString.toInt();
-    ui->contrastSlider->setValue(contrastValue);
-}
+
 /********************************************************************************************/
 
 
-void CephaloForm::on_sbSlider_valueChanged(int value)
+void CephaloForm::on_sbSlider_valueChanged(int sbValue)
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
-    QPixmap pixmap;
-    QImage image = defaultImg;
+    brightValue = ui->brightSlider->value();
+    contrastValue = ui->contrastSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
 
-    //if (value > 0) image = *sharpenFliter(image.bits(), value*4);
-    //else if (value < 0) image = *blurFilter(image.bits(), value);
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
 
-    pixmap = pixmap.fromImage(image.convertToFormat(QImage::Format_Grayscale8));
-    //ui->imgLabel->setPixmap(pixmap);
     ui->sbLineEdit->setText( QString::number(ui->sbSlider->value()) );
 }
 void CephaloForm::on_sharpenButton_clicked()
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
     sbValue = ui->sbSlider->value();
     sbValue--;
-    if(sbValue < -4) return;
+
+    if(sbValue < -6) return;
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
 void CephaloForm::on_blurButton_clicked()
 {
-    if(ui->pathLineEdit->text() == "")  return;
+    if(defaultPixmap.isNull())  return;
 
     sbValue = ui->sbSlider->value();
     sbValue++;
-    if(sbValue > 4) return;
+
+    if(sbValue > 6) return;
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
+}
+void CephaloForm::on_deNoisePlusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+        deNoiseValue = ui->deNoiseSlider->value();
+        deNoiseValue++;
+
+        if(deNoiseValue > 10) return;
+        ui->deNoiseSlider->setValue(deNoiseValue);
+        ui->deNoiseLineEdit->setText( QString::number(deNoiseValue) );
+}
+
+
+void CephaloForm::on_deNoiseMinusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+        deNoiseValue = ui->deNoiseSlider->value();
+        deNoiseValue--;
+
+        if(deNoiseValue < 0) return;
+        ui->deNoiseSlider->setValue(deNoiseValue);
+        ui->deNoiseLineEdit->setText( QString::number(deNoiseValue) );
+}
+
+
+void CephaloForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
+{
+    if(defaultPixmap.isNull())  return;
+        brightValue = ui->brightSlider->value();
+        contrastValue = ui->contrastSlider->value();
+        sbValue = ui->sbSlider->value();
+
+        emit sendCephValue(brightValue, contrastValue, sbValue, deNoiseValue);
+
+        ui->deNoiseLineEdit->setText( QString::number(ui->deNoiseSlider->value()) );
 }
 
 void CephaloForm::on_ceph_Preset_Button1_clicked()
 {
+    int preset = 1;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button2->setStyleSheet("");
     ui->ceph_Preset_Button3->setStyleSheet("");
@@ -182,10 +209,20 @@ void CephaloForm::on_ceph_Preset_Button1_clicked()
     ui->ceph_Preset_Button1->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
 }
 void CephaloForm::on_ceph_Preset_Button2_clicked()
 {
+    int preset = 2;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button3->setStyleSheet("");
@@ -195,10 +232,20 @@ void CephaloForm::on_ceph_Preset_Button2_clicked()
     ui->ceph_Preset_Button2->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
 }
 void CephaloForm::on_ceph_Preset_Button3_clicked()
 {
+    int preset = 3;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button2->setStyleSheet("");
@@ -208,9 +255,19 @@ void CephaloForm::on_ceph_Preset_Button3_clicked()
     ui->ceph_Preset_Button3->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 void CephaloForm::on_ceph_Preset_Button4_clicked()
 {
+    int preset = 4;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button2->setStyleSheet("");
@@ -220,11 +277,21 @@ void CephaloForm::on_ceph_Preset_Button4_clicked()
     ui->ceph_Preset_Button4->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 
 void CephaloForm::on_ceph_Preset_Button5_clicked()
 {
+    int preset = 5;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button2->setStyleSheet("");
@@ -234,9 +301,19 @@ void CephaloForm::on_ceph_Preset_Button5_clicked()
     ui->ceph_Preset_Button5->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 void CephaloForm::on_ceph_Preset_Button6_clicked()
 {
+    int preset = 6;
     /* preset button ui 초기화 */
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button2->setStyleSheet("");
@@ -246,6 +323,15 @@ void CephaloForm::on_ceph_Preset_Button6_clicked()
     ui->ceph_Preset_Button6->setStyleSheet("background-color: rgb(35, 190, 212);"
                                            "color: rgb(255, 255, 255);"
                                            "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendCephPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 void CephaloForm::on_resetButton_clicked()
 {
@@ -259,10 +345,13 @@ void CephaloForm::on_resetButton_clicked()
     ui->brightSlider->setValue(0);
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
     QPixmap pixmap;
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+
     emit sendResetCeph(pixmap);
+    emit sendSetReset();
 }
 
 
@@ -289,7 +378,7 @@ void CephaloForm::on_filePushButton_clicked()
             emit sendCephView(pixmap);
             ui->cephImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
             defaultImg = pixmap.toImage();
-
+            defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
             ui->ceph_ProgressBar->setValue(100);
             ui->progressbarLabel->setText("Success Load Cephalo Image !!!");
         }
@@ -312,23 +401,8 @@ void CephaloForm::on_filePushButton_clicked()
     ui->brightSlider->setValue(0);
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
-
-}
-void CephaloForm::receieveDefaultImg(QPixmap pixmap, QString file)
-{
-    ui->pathLineEdit->clear();
-
-    defaultImg = pixmap.toImage();
-    emit sendCephAdj(file);
-
-    ui->cephImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
-    ui->ceph_ProgressBar->setValue(100);
-    ui->progressbarLabel->setText("Success Load Cephalo Image !!!");
-
-    QStringList nameStr = file.split("/").last().split(".");
-    QString fileName = nameStr.first();
-    ui->pathLineEdit->setText(fileName);
 }
 
 void CephaloForm::text(QPixmap &pixmap)
@@ -339,11 +413,17 @@ void CephaloForm::text(QPixmap &pixmap)
 
 void CephaloForm::receieveImg(QPixmap& pixmap)
 {
+    prevPixmap = pixmap;
     emit sendCephView(pixmap);
 }
 
 void CephaloForm::cephImageSave(QImage& saveimg)
 {
+    if(defaultImg.isNull()) {
+        QMessageBox::warning(this, "Error", "There are no image files to save", QMessageBox::Ok);
+        return;
+    }
+
     QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
                                                     "Image File(*.jpg *.bmp *.raw *.png)");
     QFile * file = new QFile(filename);
@@ -359,5 +439,19 @@ void CephaloForm::cephImageSave(QImage& saveimg)
 
     file->close();
     delete file;
+}
+
+void CephaloForm::on_hePushButton_clicked()
+{
+    if(defaultPixmap.isNull()) return;
+
+    /* preset Img가 있으면 preset, 없으면 원본 Img */
+    if(prevPixmap.isNull())  emit sendCephPrev(defaultPixmap);
+    else emit sendCephPrev(prevPixmap);
+
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 

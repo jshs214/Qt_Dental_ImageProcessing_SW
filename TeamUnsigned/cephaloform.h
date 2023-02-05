@@ -20,34 +20,30 @@ public:
     explicit CephaloForm(QWidget *parent = nullptr);
     ~CephaloForm();
 
-protected:
-    //QImage* sharpenFliter(const uchar*, int);
-    //QImage* blurFilter(const uchar*, int);
-
 private:
     Ui::CephaloForm *ui;
     QFile* file;
     QImage defaultImg;
-
+    QPixmap defaultPixmap, prevPixmap;
     CephImageView *cephImageView;
     int imageWidth;
     int imageHeight;
     int panoImgLabelWidth = 360;
     int panoImgLabelHeight = 287;
+
     int brightValue;
     int contrastValue;
     int sbValue;
+    int deNoiseValue;
 
 private slots:
     void on_brightSlider_valueChanged(int value);
     void on_brightMinusButton_clicked();
     void on_brightPlusButton_clicked();
-    void on_brightLineEdit_textChanged(const QString&);
 
     void on_contrastSlider_valueChanged(int value);
     void on_contrastMinusButton_clicked();
     void on_contrastPlusButton_clicked();
-    void on_contrastLineEdit_textChanged(const QString&);
 
     void on_sbSlider_valueChanged(int value);
     void on_sharpenButton_clicked();
@@ -68,15 +64,27 @@ private slots:
     void receieveImg(QPixmap&);
     void cephImageSave(QImage&);
 
-    void receieveDefaultImg(QPixmap, QString);
+    void on_deNoisePlusButton_clicked();
+
+    void on_deNoiseMinusButton_clicked();
+
+    void on_deNoiseSlider_valueChanged(int value);
+
+    void on_hePushButton_clicked();
 
 signals:
+
     void sendCephView(QPixmap);
     void sendCephAdj(QString);
-    void sendCephValue(int, int);
+
+    void sendCephValue(int, int, int, int);  //밝기, 대조, 필터 값
 
     void sendResetCeph(QPixmap&);
     void saveCephSignal();
+
+    void sendCephPrev(QPixmap&);
+    void sendCephPreset(int);
+    void sendSetReset();
 };
 
 #endif // CEPHALOFORM_H

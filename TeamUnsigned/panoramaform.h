@@ -28,12 +28,10 @@ private slots:
     void on_brightSlider_valueChanged(int value);
     void on_brightMinusButton_clicked();
     void on_brightPlusButton_clicked();
-    void on_brightLineEdit_textChanged(const QString &arg1);
 
     void on_contrastSlider_valueChanged(int value);
     void on_contrastMinusButton_clicked();
     void on_contrastPlusButton_clicked();
-    void on_contrastLineEdit_textChanged(const QString &arg1);
 
     void on_sbSlider_valueChanged(int value);
     void on_sharpenButton_clicked();

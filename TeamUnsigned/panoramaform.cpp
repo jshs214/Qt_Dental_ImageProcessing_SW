@@ -3,13 +3,10 @@
 
 #include <QLabel>
 #include <QLineEdit>
-#include <QDragEnterEvent>
-#include <QMimeData>
 #include <QFile>
 #include <QFileDialog>
 #include <QBuffer>
 #include <QPainter>
-#include <QIntValidator>
 #include <QMessageBox>
 
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
@@ -100,11 +97,6 @@ void PanoramaForm::on_brightPlusButton_clicked()
     }
 }
 
-void PanoramaForm::on_brightLineEdit_textChanged(const QString &brightString)
-{
-    brightValue = brightString.toInt();
-    ui->brightSlider->setValue(brightValue);
-}
 
 
 /********************************************************************************************/
@@ -149,13 +141,6 @@ void PanoramaForm::on_contrastPlusButton_clicked()
 
     }
 }
-
-void PanoramaForm::on_contrastLineEdit_textChanged(const QString &contrastString)
-{
-    contrastValue = contrastString.toInt();
-    ui->contrastSlider->setValue(contrastValue);
-}
-
 
 /********************************************************************************************/
 void PanoramaForm::on_sharpenButton_clicked()
@@ -502,4 +487,7 @@ void PanoramaForm::on_hePushButton_clicked()
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
 }
+
+
+
 

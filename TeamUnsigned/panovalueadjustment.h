@@ -44,7 +44,6 @@ private slots:
 
 signals:
     void panoImgSend(QPixmap&);
-    void sendSharpenValue(int);
 };
 
 #endif // PANOVALUEADJUSTMENT_H
