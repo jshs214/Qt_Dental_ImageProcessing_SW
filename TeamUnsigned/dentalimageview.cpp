@@ -41,16 +41,14 @@ DentalImageView::DentalImageView()
     });
 
     connect(&m_histo, &QPushButton::clicked, [this]{
-        if(viewPixmap.isNull()) {
-            return;
-        }
-        else{
-            histogram = new Histogram();
-            connect(this, SIGNAL(sendHisto(QPixmap&)),
-                    histogram, SLOT(receiveHisto(QPixmap&)));
-            emit sendHisto(viewPixmap);
-            delete histogram;
-        }
+        if(viewPixmap.isNull()) return;
+
+        histogram = new Histogram();
+        connect(this, SIGNAL(sendHisto(QPixmap&)),
+                histogram, SLOT(receiveHisto(QPixmap&)));
+        emit sendHisto(viewPixmap);
+        delete histogram;
+
     });
 
 }
@@ -79,6 +77,8 @@ void DentalImageView::receiveResetPano(QPixmap& pixmap)
 {
     m_imageLabel->setPixmap(pixmap.scaled(dentalViewWidth, dentalViewHeight));
     scaleImage(1.0);
+
+    viewPixmap = pixmap.scaled(dentalViewWidth, dentalViewHeight);
 }
 
 void DentalImageView::receiveSavePano()
@@ -102,34 +102,34 @@ void DentalImageView::updateStyleSheet()
                            "color: rgb(255, 255, 255);\n"
                            "}\n");
     m_zoomOut.setStyleSheet("QPushButton:hover\n"
-                           "{\n"
-                           "border: 2px solid red;\n"
-                           "background-color: rgb(103, 104, 114);\n"
-                           "}\n"
-                           "QPushButton:pressed\n"
-                           "{\n"
-                           "background-color: rgb(35,190,212);\n"
-                           "color: rgb(255, 255, 255);\n"
-                           "}\n");
+                            "{\n"
+                            "border: 2px solid red;\n"
+                            "background-color: rgb(103, 104, 114);\n"
+                            "}\n"
+                            "QPushButton:pressed\n"
+                            "{\n"
+                            "background-color: rgb(35,190,212);\n"
+                            "color: rgb(255, 255, 255);\n"
+                            "}\n");
     m_histo.setStyleSheet("QPushButton:hover\n"
-                           "{\n"
-                           "border: 2px solid red;\n"
-                           "background-color: rgb(103, 104, 114);\n"
-                           "}\n"
-                           "QPushButton:pressed\n"
-                           "{\n"
-                           "background-color: rgb(35,190,212);\n"
-                           "color: rgb(255, 255, 255);\n"
-                           "}\n");
+                          "{\n"
+                          "border: 2px solid red;\n"
+                          "background-color: rgb(103, 104, 114);\n"
+                          "}\n"
+                          "QPushButton:pressed\n"
+                          "{\n"
+                          "background-color: rgb(35,190,212);\n"
+                          "color: rgb(255, 255, 255);\n"
+                          "}\n");
     m_zoomReset.setStyleSheet("QPushButton:hover\n"
-                           "{\n"
-                           "border: 2px solid red;\n"
-                           "background-color: rgb(103, 104, 114);\n"
-                           "}\n"
-                           "QPushButton:pressed\n"
-                           "{\n"
-                           "background-color: rgb(35,190,212);\n"
-                           "color: rgb(255, 255, 255);\n"
-                           "}\n");
+                              "{\n"
+                              "border: 2px solid red;\n"
+                              "background-color: rgb(103, 104, 114);\n"
+                              "}\n"
+                              "QPushButton:pressed\n"
+                              "{\n"
+                              "background-color: rgb(35,190,212);\n"
+                              "color: rgb(255, 255, 255);\n"
+                              "}\n");
 }
 

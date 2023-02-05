@@ -15,9 +15,13 @@ PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
 void PanoValueAdjustment::receiveFile(QString file)
 {
     pixmap.load(file);
+
+    //defaultImg 저장.
     defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+
+    inimg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
 
     inimg = image.bits();
 
@@ -44,27 +48,14 @@ void PanoValueAdjustment::receiveFile(QString file)
 
     avg = avg/imageSize;
 }
-/* 현재 기준 이미지 설정 */
-void PanoValueAdjustment::setImg(){
-    if(presetImg_1.isNull()){
-        currentImg = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-        inimg = currentImg.bits();
-    }
-    else {
-        currentImg = presetImg_1.convertToFormat(QImage::Format_Grayscale8);
-        inimg = currentImg.bits();
-        qDebug() << presetImg_1 <<__LINE__;
-    }
-}
+
 void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, int sbValue, int deNoiseValue)
 {
     QImage image;
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-
-    setImg();
 
     float contrast;
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
     /* 밝기값만 조정되는 case */
     if(contrastValue == 0 && sbValue == 0 && deNoiseValue == 0){
         int value =  brightValue / 2.5;
@@ -134,10 +125,10 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
             prevImg = defaultImg;
             break;
         case 1:
-            ADFilter(adfValue);
+            ADFilter(inimg, adfValue);
             break;
         default:
-            ADFilter(adfValue);
+            ADFilter(inimg, adfValue);
             break;
         }
         image = prevImg;
@@ -1114,7 +1105,7 @@ void PanoValueAdjustment::blur5x5(){
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 }
 
-void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
+void PanoValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
@@ -1123,8 +1114,8 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
 
     image = image.convertToFormat(QImage::Format_Grayscale8);
 
-    unsigned char *inimg;
-    inimg = image.bits();
+    unsigned char *histoInimg;
+    histoInimg = image.bits();
 
     width = image.width();
     height = image.height();
@@ -1140,7 +1131,7 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
     }
 
     for (int i = 0; i < imageSize; i++) {   //histogram 분포
-        value = inimg[i];
+        value = histoInimg[i];
         histo[value] += 1;
         outimg[i] = value;
     }
@@ -1156,11 +1147,14 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
     for (int i = 0; i < imageSize; i++) {
         k = outimg[i];
         outimg[i] = LIMIT_UBYTE( sum_of_h[k] * constant );
+
+        inimg[i] = outimg[i];   //평활화 후 이미지 연산은 평활화 한 이미지로 진행
     }
 
     image = QImage(outimg, width, height, QImage::Format_Grayscale8);
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);
+
 }
 
 
@@ -1260,48 +1254,6 @@ void PanoValueAdjustment::ADFilter(unsigned char * inimg, int iter){    //deNois
 
             outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
         }
-        if (i < iter - 1)
-            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
-    }
-    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-}
-
-void PanoValueAdjustment::ADFilter(int iter){   //deNoising만 수행하는 함수
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-
-    float lambda = 0.25;
-    float k = 4;
-
-    QImage copyImage;
-    copyImage = image;
-    const uchar* copy = copyImage.bits();
-
-    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
-    int i;
-    float gradn, grads, grade, gradw;
-    float gcn, gcs, gce, gcw;
-    float k2 = k * k;
-
-    for (i = 0; i < iter; i++)
-    {
-        int widthCnt = 0, heightCnt = -1;
-        for (int i = 0; i < imageSize; i += 1) {
-            widthCnt = i % width;
-            if(i % width == 0) heightCnt++;
-
-            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
-            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
-
-            gcn = gradn / (1.0f + gradn * gradn / k2);
-            gcs = grads / (1.0f + grads * grads / k2);
-            gce = grade / (1.0f + grade * grade / k2);
-            gcw = gradw / (1.0f + gradw * gradw / k2);
-
-            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
-        }
-
         if (i < iter - 1)
             std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
     }
@@ -1441,9 +1393,21 @@ void PanoValueAdjustment::sharpen(int value)// 세팔로 샤픈 임시 저장
     }
 }
 
-void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap, int preset){
-    qDebug()<<__FUNCTION__ << __LINE__ <<prePixmap << preset;
+/* preset img 받고 전송 */
+void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
+    memset(inimg, 0, sizeof(unsigned char) * imageSize);
 
-    presetImg_1 = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
+    QImage presetImg;
 
+    presetImg = prePixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
+    currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8);
+
+    inimg = currentImg.bits();
+}
+
+void PanoValueAdjustment::setResetImg() {
+    memset(inimg, 0, sizeof(unsigned char) * imageSize);
+
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();
 }

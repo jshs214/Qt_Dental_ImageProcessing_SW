@@ -88,7 +88,7 @@ signals:
 
     void sendPanoPrev(QPixmap&);
     void sendPanoPreset(int);
-
+    void sendSetReset();
 };
 
 #endif // PANORAMAFORM_H

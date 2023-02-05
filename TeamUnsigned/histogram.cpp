@@ -62,7 +62,7 @@ void Histogram::receiveHisto(QPixmap& pixmap){
     min = 999, max = 0;
     hstMin = 999, hstMax = 0;
 
-    image =  pixmap.toImage();
+    image = pixmap.toImage();
     image = image.convertToFormat(QImage::Format_Grayscale8);
 
     inimg = image.bits();

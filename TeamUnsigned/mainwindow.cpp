@@ -60,9 +60,13 @@ MainWindow::MainWindow(QWidget *parent)
             panoPreset, SLOT(receievePreset(int)));
     connect(panoPreset, SIGNAL(panoPresetSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
+
     /* preset 연산을 위한 이미지 설정 변경 SIGNAL/SLOT  */
-    connect(panoPreset, SIGNAL(panoPresetAdj(QPixmap&, int)),
-            panoValueAdjustment, SLOT(receiveSetPresetImg(QPixmap&, int)));
+    connect(panoPreset, SIGNAL(panoPresetAdj(QPixmap&)),
+            panoValueAdjustment, SLOT(receiveSetPresetImg(QPixmap&)));
+    /* preset_ Reset  SIGNAL/SLOT*/
+    connect(panoramaForm, SIGNAL(sendSetReset()),
+            panoValueAdjustment, SLOT(setResetImg()));
 
 
     /* cephalo SIGNAL/SLOT */

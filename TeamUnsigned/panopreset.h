@@ -17,14 +17,14 @@ private slots:
 
 signals:
     void panoPresetSend(QPixmap&);
-    void panoPresetAdj(QPixmap&, int);
-private:
+    void panoPresetAdj(QPixmap&);
 
+private:
     QImage defaultImg, image, prevImg;
-    QImage presetImg_1;
+    QImage presetImg;
+
     QPixmap pixmap;
-    const uchar* inimg;
-    unsigned char *mask, *outimg ,*sharpenImg, *copyImg;
+    unsigned char * inimg, *mask, *outimg ,*sharpenImg, *copyImg;
 
 
     int width, height, imageSize;
@@ -33,6 +33,11 @@ private:
     double avg = 0;
 
     void setPreset_1();
+    void setPreset_2();
+    void setPreset_3();
+    void setPreset_4();
+    void setPreset_5();
+    void setPreset_6();
 
     void gaussian(float);
     void set3x3MaskValue();

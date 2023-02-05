@@ -237,10 +237,6 @@ void PanoramaForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
 void PanoramaForm::on_preset_Button1_clicked()
 {
     int preset = 1;
-    brightValue = ui->brightSlider->value();
-    contrastValue = ui->contrastSlider->value();
-    sbValue = ui->sbSlider->value();
-    deNoiseValue = ui->deNoiseSlider->value();
 
     /* preset button ui 초기화 */
     ui->preset_Button2->setStyleSheet("");
@@ -255,10 +251,17 @@ void PanoramaForm::on_preset_Button1_clicked()
 
     emit sendPanoPreset(preset);
 
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 void PanoramaForm::on_preset_Button2_clicked()
 {
+    int preset = 2;
+
     /* preset button ui 초기화 */
     ui->preset_Button1->setStyleSheet("");
     ui->preset_Button3->setStyleSheet("");
@@ -268,10 +271,22 @@ void PanoramaForm::on_preset_Button2_clicked()
     ui->preset_Button2->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+
+    if(defaultPixmap.isNull())  return;
+
+    emit sendPanoPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 void PanoramaForm::on_preset_Button3_clicked()
 {
+    int preset = 3;
+
     /* preset button ui 초기화 */
     ui->preset_Button1->setStyleSheet("");
     ui->preset_Button2->setStyleSheet("");
@@ -281,10 +296,20 @@ void PanoramaForm::on_preset_Button3_clicked()
     ui->preset_Button3->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendPanoPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 void PanoramaForm::on_preset_Button4_clicked()
 {
+    int preset = 4;
     /* preset button ui 초기화 */
     ui->preset_Button1->setStyleSheet("");
     ui->preset_Button2->setStyleSheet("");
@@ -294,11 +319,21 @@ void PanoramaForm::on_preset_Button4_clicked()
     ui->preset_Button4->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
 
+    emit sendPanoPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 void PanoramaForm::on_preset_Button5_clicked()
 {
+    int preset = 5;
+
     /* preset button ui 초기화 */
     ui->preset_Button1->setStyleSheet("");
     ui->preset_Button2->setStyleSheet("");
@@ -308,9 +343,19 @@ void PanoramaForm::on_preset_Button5_clicked()
     ui->preset_Button5->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendPanoPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 void PanoramaForm::on_preset_Button6_clicked()
 {
+    int preset = 6;
     /* preset button ui 초기화 */
     ui->preset_Button1->setStyleSheet("");
     ui->preset_Button2->setStyleSheet("");
@@ -320,6 +365,15 @@ void PanoramaForm::on_preset_Button6_clicked()
     ui->preset_Button6->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);"
                                       "border: 2px solid rgb(184,191,200);");
+    if(defaultPixmap.isNull())  return;
+
+    emit sendPanoPreset(preset);
+
+    /* Image Send 후 value 초기화 */
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
 
@@ -345,7 +399,7 @@ void PanoramaForm::on_resetButton_clicked()
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
 
     emit sendResetPano(pixmap);
-
+    emit sendSetReset();
 }
 
 
@@ -394,6 +448,7 @@ void PanoramaForm::on_filePushButton_clicked()
     ui->brightSlider->setValue(0);
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 
 }
 
@@ -442,5 +497,9 @@ void PanoramaForm::on_hePushButton_clicked()
     if(prevPixmap.isNull())  emit sendPanoPrev(defaultPixmap);
     else emit sendPanoPrev(prevPixmap);
 
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
 }
 
