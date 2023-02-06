@@ -20,12 +20,14 @@ signals:
     void panoPresetAdj(QPixmap&);
 
 private:
-    QImage defaultImg, image, prevImg;
+    QImage defaultImg, image;
     QImage presetImg;
 
     QPixmap pixmap;
-    unsigned char * inimg, *mask, *outimg ,*sharpenImg, *copyImg;
+    unsigned char * inimg, *mask, *outimg, *copyImg, *copyImg2;
 
+    //uchar *data = myImage.bits(); // Deep copy
+    //const uchar *data = myImage.bits(); // No deep copy
 
     int width, height, imageSize;
     int dentalViewWidth = 1000;
@@ -41,8 +43,9 @@ private:
 
     void gaussian(float);
     void set3x3MaskValue();
-    void highBoost(int);
-    void ADFilter(unsigned char* ,int);
+    unsigned char* highBoost(int);
+    unsigned char* highBoost(unsigned char*, int);
+    unsigned char* ADFilter(unsigned char* ,int);
 };
 
 #endif // PANOPRESET_H

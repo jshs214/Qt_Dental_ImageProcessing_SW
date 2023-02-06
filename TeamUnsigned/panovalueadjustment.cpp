@@ -1400,6 +1400,7 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
     QImage presetImg;
 
     presetImg = prePixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
+
     currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8);
 
     inimg = currentImg.bits();

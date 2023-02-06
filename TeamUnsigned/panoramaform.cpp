@@ -22,8 +22,6 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    imageWidth = 1125 ,imageHeight = 611;
-
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
 
@@ -410,6 +408,7 @@ void PanoramaForm::on_filePushButton_clicked()
             byteArray = file->readAll();
 
             unsigned char* data = new unsigned char[ byteArray.size() ];
+
             memcpy( data, byteArray.data(), byteArray.size() );
 
             QImage image; //declare variables on header file
