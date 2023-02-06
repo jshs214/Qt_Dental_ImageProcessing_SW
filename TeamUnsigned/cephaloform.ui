@@ -1855,6 +1855,9 @@ color: rgb(255, 255, 255);
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
            <property name="sizeHint" stdset="0">
             <size>
              <width>40</width>
@@ -1876,7 +1879,7 @@ color: rgb(255, 255, 255);
 font: 11pt &quot;휴먼매직체&quot;;</string>
            </property>
            <property name="text">
-            <string>Unsigned Viewer : Panorama Mode</string>
+            <string>Unsigned Viewer : Cephalo Mode</string>
            </property>
           </widget>
          </item>
@@ -1884,6 +1887,9 @@ font: 11pt &quot;휴먼매직체&quot;;</string>
           <spacer name="horizontalSpacer_29">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>

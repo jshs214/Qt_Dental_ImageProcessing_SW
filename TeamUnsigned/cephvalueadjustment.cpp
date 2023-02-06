@@ -11,9 +11,9 @@ CephValueAdjustment::CephValueAdjustment(QObject *parent)
 {
 }
 
-void CephValueAdjustment::receiveFile(QString file)
+void CephValueAdjustment::receiveFile(QPixmap& roadPixmap)
 {
-    pixmap.load(file);
+    pixmap = roadPixmap;
 
     //defaultImg 저장.
     defaultImg = pixmap.scaled(cephViewWidth, cephViewHeight).toImage();

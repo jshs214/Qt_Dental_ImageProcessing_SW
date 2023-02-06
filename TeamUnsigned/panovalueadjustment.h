@@ -36,7 +36,7 @@ private:
     void ADFilter(unsigned char* ,int);
 
 private slots:
-    void receiveFile(QString);  //defaultImg receive 수정 해야댈 듯
+    void receiveFile(QPixmap&);  //defaultImg receive 수정 해야댈 듯
     void changePanoValue(int, int, int, int);   //밝기, 대조, unsharp, deNoise
     void receivePrev(QPixmap&); //prevImg receive
     void receiveSetPresetImg(QPixmap&);

@@ -77,7 +77,7 @@ private:
 
 signals:
     void sendPanoView(QPixmap);
-    void sendPanoAdj(QString);
+    void sendPanoAdj(QPixmap&);
 
     void sendPanoValue(int, int, int, int);  //밝기, 대조, 필터 값
 

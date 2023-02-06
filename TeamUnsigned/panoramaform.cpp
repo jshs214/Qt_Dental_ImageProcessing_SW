@@ -27,7 +27,7 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
 
-    dentalImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
+    //dentalImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
 
     ui->verticalLayout_7->insertWidget(2, dentalImageView);
 
@@ -395,14 +395,34 @@ void PanoramaForm::on_imageSaveButton_clicked()
 
 void PanoramaForm::on_filePushButton_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(this);
+    QString filename = QFileDialog::getOpenFileName(this, "Open file", "C:\\Users\\KOSA\\OneDrive\\바탕 화면");
 
     QPixmap pixmap;
 
     if(filename.length()) {          // 파일이 존재한다면
         file = new QFile(filename);
-        pixmap.load(file->fileName());
-        emit sendPanoAdj(file->fileName());
+
+        QString extension = file->fileName().split("/").last().split(".").last();
+        if( extension == "raw"){
+            file->open(QFile::ReadOnly);
+
+            QByteArray byteArray;
+            byteArray = file->readAll();
+
+            unsigned char* data = new unsigned char[ byteArray.size() ];
+            memcpy( data, byteArray.data(), byteArray.size() );
+
+            QImage image; //declare variables on header file
+            QImage *temp = new QImage(data, 3000, 2400,QImage::Format_Grayscale16);
+            image = *temp;
+
+            pixmap = QPixmap::fromImage(image,Qt::AutoColor);
+        }
+        else if( extension != "raw"){
+            pixmap.load(file->fileName());
+        }
+
+        emit sendPanoAdj(pixmap);
 
         QStringList nameStr = file->fileName().split("/").last().split(".");
         QString fileName = nameStr.first();
@@ -413,7 +433,6 @@ void PanoramaForm::on_filePushButton_clicked()
             ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
             defaultImg = pixmap.toImage();
             defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
-            ui->panoProgressBar->setValue(100);
             ui->progressbarLabel->setText("Success Load Panorama Image !!!");
         }
         file->close();
@@ -435,6 +454,8 @@ void PanoramaForm::on_filePushButton_clicked()
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
 
+    for(int i = 0; i <= 100; i ++)
+        ui->panoProgressBar->setValue(i);
 }
 
 void PanoramaForm::text(QPixmap &pixmap)

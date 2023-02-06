@@ -75,7 +75,7 @@ private slots:
 signals:
 
     void sendCephView(QPixmap);
-    void sendCephAdj(QString);
+    void sendCephAdj(QPixmap&);
 
     void sendCephValue(int, int, int, int);  //밝기, 대조, 필터 값
 

@@ -10,8 +10,8 @@ CephPreset::CephPreset(QObject *parent)
     : QObject{parent}
 {
 }
-void CephPreset::receiveFile(QString file){
-    pixmap.load(file);
+void CephPreset::receiveFile(QPixmap& roadPixmap){
+    pixmap = roadPixmap;
     defaultImg = pixmap.scaled(cephViewWidth, cephViewHeight).toImage();
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);

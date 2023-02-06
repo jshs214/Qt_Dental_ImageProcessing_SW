@@ -11,8 +11,8 @@ PanoPreset::PanoPreset(QObject *parent)
     : QObject{parent}
 {
 }
-void PanoPreset::receiveFile(QString file){
-    pixmap.load(file);
+void PanoPreset::receiveFile(QPixmap& roadPixmap){
+    pixmap = roadPixmap;
     defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);

@@ -12,9 +12,9 @@ PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
 {
 }
 
-void PanoValueAdjustment::receiveFile(QString file)
+void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
 {
-    pixmap.load(file);
+    pixmap = roadPixmap;
 
     //defaultImg 저장.
     defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();

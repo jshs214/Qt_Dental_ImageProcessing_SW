@@ -45,8 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* panorama SIGNAL/SLOT */
     /* Load 시, 이미지 경로 SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
-            panoValueAdjustment, SLOT(receiveFile(QString)));
+    connect(panoramaForm, SIGNAL(sendPanoAdj(QPixmap&)),
+            panoValueAdjustment, SLOT(receiveFile(QPixmap&)));
     /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
     connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int, int)),
             panoValueAdjustment, SLOT(changePanoValue(int, int, int, int)));
@@ -58,8 +58,8 @@ MainWindow::MainWindow(QWidget *parent)
             panoValueAdjustment, SLOT(receivePrev(QPixmap&)));
 
     /* Preset 설정 SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoAdj(QString)),
-            panoPreset, SLOT(receiveFile(QString)));
+    connect(panoramaForm, SIGNAL(sendPanoAdj(QPixmap&)),
+            panoPreset, SLOT(receiveFile(QPixmap&)));
     connect(panoramaForm, SIGNAL(sendPanoPreset(int)),
             panoPreset, SLOT(receievePreset(int)));
     connect(panoPreset, SIGNAL(panoPresetSend(QPixmap&)),
@@ -75,8 +75,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* cephalo SIGNAL/SLOT */
     /* Load 시, 이미지 경로 SIGNAL/SLOT */
-    connect(cephaloForm, SIGNAL(sendCephAdj(QString)),
-            cephValueAdjustment, SLOT(receiveFile(QString)));
+    connect(cephaloForm, SIGNAL(sendCephAdj(QPixmap&)),
+            cephValueAdjustment, SLOT(receiveFile(QPixmap&)));
     /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
     connect(cephaloForm, SIGNAL(sendCephValue(int, int, int, int)),
             cephValueAdjustment, SLOT(changeCephValue(int, int, int, int)));
@@ -88,8 +88,8 @@ MainWindow::MainWindow(QWidget *parent)
             cephValueAdjustment, SLOT(receivePrev(QPixmap&)));
 
     /* Preset 설정 SIGNAL/SLOT */
-    connect(cephaloForm, SIGNAL(sendCephAdj(QString)),
-            cephPreset, SLOT(receiveFile(QString)));
+    connect(cephaloForm, SIGNAL(sendCephAdj(QPixmap&)),
+            cephPreset, SLOT(receiveFile(QPixmap&)));
     connect(cephaloForm, SIGNAL(sendCephPreset(int)),
             cephPreset, SLOT(receievePreset(int)));
     connect(cephPreset, SIGNAL(panoPresetSend(QPixmap&)),

@@ -12,7 +12,7 @@ public:
 
 private slots:
     void receievePreset(int);
-    void receiveFile(QString);
+    void receiveFile(QPixmap&);
 
 signals:
     void panoPresetSend(QPixmap&);

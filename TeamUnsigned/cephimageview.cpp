@@ -48,6 +48,7 @@ CephImageView::CephImageView(QWidget *parent)
         delete histogram;
 
     });
+
 }
 
 void CephImageView::scaleImage(double factor)
