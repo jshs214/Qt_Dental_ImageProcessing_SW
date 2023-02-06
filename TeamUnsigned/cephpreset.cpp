@@ -78,8 +78,8 @@ void CephPreset::receievePreset(int preset){
         break;
     }
 
-    emit panoPresetSend(pixmap);
-    emit panoPresetAdj(pixmap);
+    emit cephPresetSend(pixmap);
+    emit cephPresetAdj(pixmap);
 
 }
 

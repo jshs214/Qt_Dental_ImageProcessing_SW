@@ -92,9 +92,15 @@ MainWindow::MainWindow(QWidget *parent)
             cephPreset, SLOT(receiveFile(QPixmap&)));
     connect(cephaloForm, SIGNAL(sendCephPreset(int)),
             cephPreset, SLOT(receievePreset(int)));
-    connect(cephPreset, SIGNAL(panoPresetSend(QPixmap&)),
+    connect(cephPreset, SIGNAL(cephPresetSend(QPixmap&)),
             cephaloForm, SLOT(receieveImg(QPixmap&)));
 
+    /* preset 연산을 위한 이미지 설정 변경 SIGNAL/SLOT  */
+    connect(cephPreset, SIGNAL(cephPresetAdj(QPixmap&)),
+            cephValueAdjustment, SLOT(receiveSetPresetImg(QPixmap&)));
+    /* preset_ Reset  SIGNAL/SLOT*/
+    connect(cephaloForm, SIGNAL(sendSetReset()),
+            cephValueAdjustment, SLOT(setResetImg()));
 }
 
 MainWindow::~MainWindow()

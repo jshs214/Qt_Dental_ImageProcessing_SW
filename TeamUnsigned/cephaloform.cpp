@@ -21,9 +21,6 @@ CephaloForm::CephaloForm(QWidget *parent) :
     cephImageView = new CephImageView;
     cephImageView->setFixedSize(1020, 655);
 
-    //cephImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
-
-
     ui->verticalLayout_7->insertWidget(2, cephImageView);
 
     connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
@@ -409,7 +406,6 @@ void CephaloForm::on_filePushButton_clicked()
         return;
     }
 
-
     ui->ceph_Preset_Button1->setStyleSheet("");
     ui->ceph_Preset_Button2->setStyleSheet("");
     ui->ceph_Preset_Button3->setStyleSheet("");
@@ -445,13 +441,24 @@ void CephaloForm::cephImageSave(QImage& saveimg)
     }
 
     QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
-                                                    "Image File(*.jpg *.bmp *.raw *.png)");
+                                                    "Image File(*.raw )");
     QFile * file = new QFile(filename);
     file->open(QIODevice::WriteOnly | QIODevice::Text);
     QFileInfo fileInfo(filename);
 
+    QByteArray byteArray = filename.toLocal8Bit();
+    const char *saveFileName = byteArray.data();
+
     if(fileInfo.isWritable()){
-        saveimg.save(filename);
+        FILE* fp;
+
+        fp = fopen(saveFileName, "wb");
+        QImage image = saveimg.convertToFormat(QImage::Format_Grayscale16);
+        ushort* saveFile = reinterpret_cast<ushort*>(image.bits());
+
+        fwrite(saveFile, sizeof(unsigned short) * saveimg.width() * saveimg.height(), 1, fp);
+
+        fclose(fp);
     }
     else {
         QMessageBox::warning(this, "Error", "Can't Save this file", QMessageBox::Ok);

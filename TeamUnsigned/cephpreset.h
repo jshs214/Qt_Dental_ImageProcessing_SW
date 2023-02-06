@@ -15,8 +15,8 @@ private slots:
     void receiveFile(QPixmap&);
 
 signals:
-    void panoPresetSend(QPixmap&);
-    void panoPresetAdj(QPixmap&);
+    void cephPresetSend(QPixmap&);
+    void cephPresetAdj(QPixmap&);
 
 private:
     QImage defaultImg, image, prevImg;

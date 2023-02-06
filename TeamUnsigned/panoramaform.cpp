@@ -478,13 +478,24 @@ void PanoramaForm::panoImageSave(QImage& saveimg)
     }
     else {
         QString filename = QFileDialog::getSaveFileName(this, "Select a file to save", ".",
-                                                        "Image File(*.jpg *.bmp *.raw *.png)");
+                                                        "Image File(*.raw)");
         QFile * file = new QFile(filename);
         file->open(QIODevice::WriteOnly | QIODevice::Text);
         QFileInfo fileInfo(filename);
 
+        QByteArray byteArray = filename.toLocal8Bit();
+        const char *saveFileName = byteArray.data();
+
         if(fileInfo.isWritable()){
-            saveimg.save(filename);
+            FILE* fp;
+
+            fp = fopen(saveFileName, "wb");
+            QImage image = saveimg.convertToFormat(QImage::Format_Grayscale16);
+            ushort* saveFile = reinterpret_cast<ushort*>(image.bits());
+
+            fwrite(saveFile, sizeof(unsigned short) * saveimg.width() * saveimg.height(), 1, fp);
+
+            fclose(fp);
         }
         else {
             QMessageBox::warning(this, "Error", "Can't Save this file", QMessageBox::Ok);
