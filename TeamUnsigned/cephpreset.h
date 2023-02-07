@@ -19,11 +19,11 @@ signals:
     void cephPresetAdj(QPixmap&);
 
 private:
-    QImage defaultImg, image, prevImg;
+    QImage defaultImg, image;
     QImage presetImg;
 
     QPixmap pixmap;
-    unsigned char * inimg, *mask, *outimg ,*sharpenImg, *copyImg;
+    unsigned char * inimg, *mask, *outimg ,*copyImg, *copyImg2;
 
 
     int width, height, imageSize;
@@ -38,10 +38,12 @@ private:
     void setPreset_5();
     void setPreset_6();
 
-    void gaussian(float);
     void set3x3MaskValue();
-    void highBoost(int);
-    void ADFilter(unsigned char* ,int);
+
+    unsigned char* gaussian(float);
+    unsigned char* highBoost(int);
+    unsigned char* highBoost(unsigned char*, int);
+    unsigned char* ADFilter(unsigned char* ,int);
 
 };
 

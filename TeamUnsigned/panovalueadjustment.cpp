@@ -1404,6 +1404,7 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
     currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8);
 
     inimg = currentImg.bits();
+
 }
 
 void PanoValueAdjustment::setResetImg() {
@@ -1411,4 +1412,6 @@ void PanoValueAdjustment::setResetImg() {
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();
+
+
 }

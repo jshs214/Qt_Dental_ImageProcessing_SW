@@ -393,7 +393,8 @@ void PanoramaForm::on_imageSaveButton_clicked()
 
 void PanoramaForm::on_filePushButton_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Open file", "C:\\Users\\KOSA\\OneDrive\\바탕 화면");
+    QString filename = QFileDialog::getOpenFileName(this, "Open file",
+                                                    "C:\\Users\\KOSA\\OneDrive\\바탕 화면\\PostData");
 
     QPixmap pixmap;
 
@@ -408,14 +409,16 @@ void PanoramaForm::on_filePushButton_clicked()
             byteArray = file->readAll();
 
             unsigned char* data = new unsigned char[ byteArray.size() ];
-
             memcpy( data, byteArray.data(), byteArray.size() );
 
             QImage image; //declare variables on header file
-            QImage *temp = new QImage(data, 3000, 2400,QImage::Format_Grayscale16);
+
+            QImage *temp = new QImage(data, 3000, 1628,QImage::Format_Grayscale16);
+
             image = *temp;
 
             pixmap = QPixmap::fromImage(image,Qt::AutoColor);
+
         }
         else if( extension != "raw"){
             pixmap.load(file->fileName());

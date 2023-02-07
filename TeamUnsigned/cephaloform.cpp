@@ -358,7 +358,8 @@ void CephaloForm::on_imageSaveButton_clicked()
 }
 void CephaloForm::on_filePushButton_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Open file", "C:\\Users\\KOSA\\OneDrive\\바탕 화면");
+    QString filename = QFileDialog::getOpenFileName(this, "Open file",
+                                                    "C:\\Users\\KOSA\\OneDrive\\바탕 화면\\PostData");
 
     QPixmap pixmap;
 

@@ -26,9 +26,6 @@ private:
     QPixmap pixmap;
     unsigned char * inimg, *mask, *outimg, *copyImg, *copyImg2;
 
-    //uchar *data = myImage.bits(); // Deep copy
-    //const uchar *data = myImage.bits(); // No deep copy
-
     int width, height, imageSize;
     int dentalViewWidth = 1000;
     int dentalViewHeight = 600;
@@ -41,8 +38,9 @@ private:
     void setPreset_5();
     void setPreset_6();
 
-    void gaussian(float);
     void set3x3MaskValue();
+
+    unsigned char* gaussian(float);
     unsigned char* highBoost(int);
     unsigned char* highBoost(unsigned char*, int);
     unsigned char* ADFilter(unsigned char* ,int);
