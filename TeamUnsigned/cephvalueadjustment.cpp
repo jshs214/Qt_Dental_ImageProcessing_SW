@@ -52,6 +52,9 @@ void CephValueAdjustment::receiveFile(QPixmap& roadPixmap)
     copyImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
 
+    gammaImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(gammaImg, 0, sizeof(unsigned char) * imageSize);
+
     fftImg = (unsigned char*)malloc(sizeof(unsigned char) * cephViewWidth * cephViewHeight);
     memset(fftImg, 0, sizeof(unsigned char) * cephViewWidth * cephViewHeight);
 
@@ -67,22 +70,24 @@ void CephValueAdjustment::receiveFile(QPixmap& roadPixmap)
     avg = avg/imageSize;
 }
 
-void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int sbValue, int deNoiseValue )
+void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int sbValue,
+                                          int deNoiseValue, int gammaValue )
 {
     QImage image;
 
+    float gamma;
     float contrast;
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
     /* 밝기값만 조정되는 case */
-    if(contrastValue == 0 && sbValue == 0 && deNoiseValue == 0){
+    if(contrastValue == 0 && sbValue == 0 && deNoiseValue == 0 && gammaValue ==0){
         int value =  brightValue / 2.5;
         for(int i = 0; i < imageSize; i ++){
             *(outimg + i) = LIMIT_UBYTE( *(inimg + i) + value );
         }
     }
     /* 대비값만 조정되는 case */
-    else if(brightValue == 0 && sbValue == 0 && deNoiseValue == 0){
+    else if(brightValue == 0 && sbValue == 0 && deNoiseValue == 0 && gammaValue ==0){
         if (contrastValue > 0) {
             contrast = (100.0+contrastValue/2)/100.0;
             for(int i = 0; i < imageSize; i ++){
@@ -104,38 +109,38 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
         }
     }
     /* 필터값만 조정되는 case */
-    else if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0){
+    else if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0 && gammaValue ==0){
         switch(sbValue) {
         case -6:
-            gaussian(3.0);
+            gaussian(inimg, 3.0);
             break;
         case -5:
-            gaussian(2.5);
+            gaussian(inimg, 2.5);
             break;
         case -4:
-            gaussian(2.0);
+            gaussian(inimg, 2.0);
             break;
         case -3:
-            gaussian(1.5);
+            gaussian(inimg, 1.5);
             break;
         case -2:
-            gaussian(1.0);
+            gaussian(inimg, 1.0);
             break;
         case -1:
-            gaussian(0.5);
+            gaussian(inimg, 0.5);
             break;
         case 0:
             prevImg = defaultImg;
             break;
         default:
-            highBoost(sbValue);
+            highBoost(inimg, sbValue);
             break;
         }
         image = prevImg;
     }
 
     /* DeNoising 만 조정되는 case */
-    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0) {
+    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && gammaValue ==0) {
         int adfValue = 2 * deNoiseValue;
 
         switch(deNoiseValue) {
@@ -151,33 +156,60 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
         }
         image = prevImg;
     }
+    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && deNoiseValue ==0){
+        if(gammaValue ==0){
+            for(int i = 0; i < imageSize; i ++){
+                *(outimg + i) = *(inimg + i);
+            }
+        }
+        else{   //gammaValue가 0이 아닌 경우
+            gamma = 1.0 + gammaValue*0.02;
 
+            for(int i = 0; i < imageSize; i ++){
+                *(outimg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
+            }
+        }
+
+
+    }
     /* 두 값 or 세 값, 네 값이 조정되는 case */
     else{
         int value =  brightValue / 2.5;
+        if(gammaValue ==0){
+            for(int i = 0; i < imageSize; i ++){
+                *(gammaImg + i) = *(inimg + i);
+            }
+        }
+        else{   //gammaValue가 0이 아닌 경우
+            gamma = 1.0 + gammaValue*0.02;
+
+            for(int i = 0; i < imageSize; i ++){
+                *(gammaImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
+            }
+        }
         if(deNoiseValue == 0){  // deNoising이 조정되지 않을 경우
             if(sbValue != 0){   // unsharp이 조정된 경우
                 switch(sbValue) {
                 case -6:
-                    gaussian(3.0);
+                    gaussian(gammaImg, 3.0);
                     break;
                 case -5:
-                    gaussian(2.5);
+                    gaussian(gammaImg, 2.5);
                     break;
                 case -4:
-                    gaussian(2.0);
+                    gaussian(gammaImg, 2.0);
                     break;
                 case -3:
-                    gaussian(1.5);
+                    gaussian(gammaImg,1.5);
                     break;
                 case -2:
-                    gaussian(1.0);
+                    gaussian(gammaImg, 1.0);
                     break;
                 case -1:
-                    gaussian(0.5);
+                    gaussian(gammaImg, 0.5);
                     break;
                 default:
-                    highBoost(sbValue);
+                    highBoost(gammaImg, sbValue);
                     break;
                 }
                 image = prevImg;
@@ -206,20 +238,20 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
                 if (contrastValue > 0) {
                     contrast = (100.0+contrastValue/2)/100.0;
                     for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value );
+                        *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value );
                     }
                 }
                 else if(contrastValue == 0) {
                     contrast = 1;
                     for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)- avg) * contrast)  + value );
+                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(gammaImg+i)- avg) * contrast)  + value );
                     }
                 }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
                     for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value);
+                        *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value);
                     }
                 }
             }
@@ -231,22 +263,22 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
             if(sbValue != 0){   // unsharp이 조정된 경우
                 switch(sbValue) {
                 case -6:
-                    gaussian(3.0);
+                    gaussian(gammaImg, 3.0);
                     break;
                 case -5:
-                    gaussian(2.5);
+                    gaussian(gammaImg, 2.5);
                     break;
                 case -4:
-                    gaussian(2.0);
+                    gaussian(gammaImg, 2.0);
                     break;
                 case -3:
-                    gaussian(1.5);
+                    gaussian(gammaImg, 1.5);
                     break;
                 case -2:
-                    gaussian(1.0);
+                    gaussian(gammaImg, 1.0);
                     break;
                 case -1:
-                    gaussian(0.5);
+                    gaussian(gammaImg, 0.5);
                     break;
                 default:
                     sharpen(sbValue* 4);
@@ -281,20 +313,20 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
                 if (contrastValue > 0) {
                     contrast = (100.0+contrastValue/2)/100.0;
                     for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast  + value );
+                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)-avg) *contrast  + value );
                     }
                 }
                 else if(contrastValue == 0) {
                     contrast = 1;
                     for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)-avg) * contrast)  + value );
+                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(gammaImg+i)-avg) * contrast)  + value );
                     }
                 }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
                     for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(inimg+i)- avg) *contrast  + value);
+                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value);
                     }
                 }
                 ADFilter(copyImg, adfValue);
@@ -448,12 +480,12 @@ void CephValueAdjustment::set3x3MaskValue(){
     }
 }
 
-void CephValueAdjustment::highBoost(int sbValue){ //unsharp mask = 원본이미지 + mask 값
+void CephValueAdjustment::highBoost(unsigned char* in, int sbValue){ //unsharp mask = 원본이미지 + mask 값
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     int sharpen = sbValue * 2.5;
 
     for (int i = 0; i < imageSize; i += 1) {
-        *(outimg + i) = LIMIT_UBYTE ( *(inimg + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
+        *(outimg + i) = LIMIT_UBYTE ( *(in + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
     }
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 }
@@ -510,7 +542,7 @@ void CephValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
 }
 
 
-void CephValueAdjustment::gaussian(float sigma){
+void CephValueAdjustment::gaussian(unsigned char* in, float sigma){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
     float* pBuf;
@@ -542,7 +574,7 @@ void CephValueAdjustment::gaussian(float sigma){
                 x = k - dim2 + j;
                 if (x>= 0 && x <height) {
                     sum1 += pMask[k];
-                    sum2 += (pMask[k] * inimg[x + i*height]);
+                    sum2 += (pMask[k] * in[x + i*height]);
                 }
             }
             pBuf[j+ i*height] = sum2 / sum1;
@@ -856,7 +888,7 @@ void CephValueAdjustment::median(int value) {
     }
     QPixmap medianPixmap;
 
-    currentImg = QImage(medianFilterImg, width, height, QImage::Format_Grayscale8);
+    currentImg = QImage(medianFilterImg, width, height, QImage::Format_Grayscale8).copy();
     medianPixmap = pixmap.fromImage(currentImg);
 
     inimg = currentImg.bits();
@@ -871,7 +903,7 @@ void CephValueAdjustment::lowPassFFT(int cutoff) {
 
     fourier.lowPassGaussian(fftImg, cutoff);
 
-    currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8);
+    currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8).copy();
 
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
@@ -889,7 +921,7 @@ void CephValueAdjustment::highPassFFT(int cutoff) {
 
     fourier.highFrequencyPass(fftImg, cutoff);
 
-    currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8);
+    currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8).copy();
 
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
@@ -909,7 +941,7 @@ void CephValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
     QImage presetImg;
 
     presetImg = prePixmap.scaled(cephViewWidth, cephViewHeight).toImage();
-    currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8);
+    currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8).copy();
 
     inimg = currentImg.bits();
 }

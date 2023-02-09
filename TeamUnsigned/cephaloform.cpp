@@ -99,6 +99,7 @@ void CephaloForm::loadDB_Data(QString cephPath){
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 
     for(int i = 0; i <= 100; i ++)
         ui->ceph_ProgressBar->setValue(i);
@@ -113,8 +114,8 @@ void CephaloForm::on_brightSlider_valueChanged(int brightValue)
     contrastValue = ui->contrastSlider->value();
     sbValue = ui->sbSlider->value();
     deNoiseValue = ui->deNoiseSlider->value();
-
-    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
+    gammaValue = ui->gammaSlider->value();
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue,gammaValue);
 
     ui->brightLineEdit->setText( QString::number(ui->brightSlider->value()) );
 
@@ -151,8 +152,8 @@ void CephaloForm::on_contrastSlider_valueChanged(int contrastValue)
     brightValue = ui->brightSlider->value();
     sbValue = ui->sbSlider->value();
     deNoiseValue = ui->deNoiseSlider->value();
-
-    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
+    gammaValue = ui->gammaSlider->value();
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue, gammaValue);
 
 
     ui->contrastLineEdit->setText( QString::number(ui->contrastSlider->value()) );
@@ -189,8 +190,8 @@ void CephaloForm::on_sbSlider_valueChanged(int sbValue)
     brightValue = ui->brightSlider->value();
     contrastValue = ui->contrastSlider->value();
     deNoiseValue = ui->deNoiseSlider->value();
-
-    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue);
+    gammaValue = ui->gammaSlider->value();
+    emit sendCephValue(brightValue , contrastValue, sbValue, deNoiseValue, gammaValue);
 
     ui->sbLineEdit->setText( QString::number(ui->sbSlider->value()) );
 }
@@ -216,6 +217,46 @@ void CephaloForm::on_blurButton_clicked()
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
+
+void CephaloForm::on_gammaPlusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+    gammaValue = ui->gammaSlider->value();
+    gammaValue++;
+
+    if(gammaValue > 50) return;
+    ui->gammaSlider->setValue(gammaValue);
+    ui->gammaLineEdit->setText( QString::number(gammaValue) );
+}
+
+
+void CephaloForm::on_gammaMinusButton_clicked()
+{
+    if(defaultPixmap.isNull())  return;
+
+    gammaValue = ui->gammaSlider->value();
+    gammaValue--;
+
+    if(gammaValue < -50) return;
+    ui->gammaSlider->setValue(gammaValue);
+    ui->gammaLineEdit->setText( QString::number(gammaValue) );
+}
+
+
+void CephaloForm::on_gammaSlider_valueChanged(int gammaValue)
+{
+    if(defaultPixmap.isNull())  return;
+    brightValue = ui->brightSlider->value();
+    contrastValue = ui->contrastSlider->value();
+    sbValue = ui->sbSlider->value();
+    deNoiseValue = ui->deNoiseSlider->value();
+
+    emit sendCephValue(brightValue, contrastValue, sbValue, deNoiseValue, gammaValue);
+
+    ui->gammaLineEdit->setText( QString::number(ui->gammaSlider->value()) );
+}
+
 void CephaloForm::on_deNoisePlusButton_clicked()
 {
     if(defaultPixmap.isNull())  return;
@@ -248,8 +289,9 @@ void CephaloForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
         brightValue = ui->brightSlider->value();
         contrastValue = ui->contrastSlider->value();
         sbValue = ui->sbSlider->value();
+        gammaValue = ui->gammaSlider->value();
 
-        emit sendCephValue(brightValue, contrastValue, sbValue, deNoiseValue);
+        emit sendCephValue(brightValue, contrastValue, sbValue, deNoiseValue,gammaValue);
 
         ui->deNoiseLineEdit->setText( QString::number(ui->deNoiseSlider->value()) );
 }
@@ -275,6 +317,7 @@ void CephaloForm::on_ceph_Preset_Button1_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 
 }
 void CephaloForm::on_ceph_Preset_Button2_clicked()
@@ -298,6 +341,7 @@ void CephaloForm::on_ceph_Preset_Button2_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 
 }
 void CephaloForm::on_ceph_Preset_Button3_clicked()
@@ -321,6 +365,7 @@ void CephaloForm::on_ceph_Preset_Button3_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 void CephaloForm::on_ceph_Preset_Button4_clicked()
 {
@@ -343,6 +388,7 @@ void CephaloForm::on_ceph_Preset_Button4_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 
 
@@ -367,6 +413,7 @@ void CephaloForm::on_ceph_Preset_Button5_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 void CephaloForm::on_ceph_Preset_Button6_clicked()
 {
@@ -389,6 +436,7 @@ void CephaloForm::on_ceph_Preset_Button6_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 void CephaloForm::on_resetButton_clicked()
 {
@@ -403,6 +451,9 @@ void CephaloForm::on_resetButton_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
+
+    prevPixmap = QPixmap();
 
     QPixmap pixmap;
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
@@ -478,6 +529,7 @@ void CephaloForm::on_filePushButton_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
     for(int i = 0; i <=100; i++)
         ui->ceph_ProgressBar->setValue(i);
 }
@@ -541,6 +593,7 @@ void CephaloForm::on_hePushButton_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 
 

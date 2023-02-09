@@ -26,8 +26,9 @@ private:
     QFile* file;
     QImage defaultImg;
     QPixmap defaultPixmap, prevPixmap;
-    CephImageView *cephImageView;\
+    CephImageView *cephImageView;
     FilterButtonForm *filterWidget;
+
     int imageWidth;
     int imageHeight;
     int panoImgLabelWidth = 360;
@@ -37,6 +38,7 @@ private:
     int contrastValue;
     int sbValue;
     int deNoiseValue;
+    int gammaValue;
 
 private slots:
     void loadDB_Data(QString);
@@ -83,12 +85,16 @@ private slots:
 
     void on_filterPushButton_clicked();
 
+    void on_gammaPlusButton_clicked();
+    void on_gammaMinusButton_clicked();
+    void on_gammaSlider_valueChanged(int value);
+
 signals:
 
     void sendCephView(QPixmap);
     void sendCephAdj(QPixmap&);
 
-    void sendCephValue(int, int, int, int);  //밝기, 대조, 필터 값
+    void sendCephValue(int, int, int, int, int);  //밝기, 대조, 필터 값
 
     void sendResetCeph(QPixmap&);
     void saveCephSignal();

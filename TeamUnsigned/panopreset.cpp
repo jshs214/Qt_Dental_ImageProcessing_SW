@@ -22,6 +22,7 @@ void PanoPreset::receiveFile(QPixmap& roadPixmap){
 
     width = image.width();
     height = image.height();
+
     imageSize = width * height;
 
     outimg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
@@ -45,6 +46,13 @@ void PanoPreset::receiveFile(QPixmap& roadPixmap){
 
     avg = avg/imageSize;
 
+    setPreset_1();
+    setPreset_2();
+    setPreset_3();
+    setPreset_4();
+    setPreset_5();
+    setPreset_6();
+
 }
 
 void PanoPreset::receievePreset(int preset){
@@ -52,46 +60,40 @@ void PanoPreset::receievePreset(int preset){
 
     switch(preset) {
     case 1:
-        setPreset_1();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_1();
+        pixmap = pixmap.fromImage(presetImg1);
         break;
 
     case 2:
-        setPreset_2();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_2();
+        pixmap = pixmap.fromImage(presetImg2);
         break;
 
     case 3:
-        setPreset_3();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_3();
+        pixmap = pixmap.fromImage(presetImg3);
         break;
 
     case 4:
-        setPreset_4();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_4();
+        pixmap = pixmap.fromImage(presetImg4);
         break;
 
     case 5:
-        setPreset_5();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_5();
+        pixmap = pixmap.fromImage(presetImg5);
         break;
 
     case 6:
-        setPreset_6();
-        if(presetImg.isNull()) return;
-        pixmap = pixmap.fromImage(presetImg);
+        //setPreset_6();
+        pixmap = pixmap.fromImage(presetImg6);
         break;
     }
 
     emit panoPresetSend(pixmap);
     emit panoPresetAdj(pixmap);
 
-    presetImg = QImage();
+    //presetImg = QImage();
     pixmap = QPixmap();
 }
 
@@ -115,7 +117,10 @@ void PanoPreset::setPreset_1(){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = (highBoost(copyImg, sbValue));
+    memcpy(copyImg2, copyImg, sizeof(unsigned char)*imageSize);
+
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memcpy(copyImg, highBoost(copyImg2, sbValue), sizeof(unsigned char)*imageSize);
 
     int brightValue = 20;
     int bright = brightValue / 2.5;
@@ -123,10 +128,11 @@ void PanoPreset::setPreset_1(){
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) + bright );
+        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg+i)-avg) * contrast) + bright );
     }
 
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+
+    presetImg1 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
 void PanoPreset::setPreset_2(){
@@ -139,41 +145,40 @@ void PanoPreset::setPreset_2(){
 
     int sbValue = 3;
     int contrastValue = 20;
-
+    int brightValue = -20;
+    int bright = brightValue / 2.5;
+    contrastValue = 0;
+    float contrast = (100.0+contrastValue/2)/100.0;
     double gammaValue = 0.6;
 
-    float contrast;
+
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f/ gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = (highBoost(copyImg, sbValue));
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     contrastValue = 20;
     contrast = (100.0+contrastValue/2)/100.0;
 
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  );
     }
 
     sbValue = 2;
-    copyImg2 = highBoost(copyImg, sbValue);
 
-    int brightValue = -20;
-    int bright = brightValue / 2.5;
-    contrastValue = 0;
-    contrast = (100.0+contrastValue/2)/100.0;
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) +bright );
     }
 
-    outimg = ADFilter(copyImg, 3);
+    memcpy(outimg, ADFilter(copyImg, 3), sizeof(unsigned char)*imageSize);
 
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-
+    presetImg2 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }   //preset2
 void PanoPreset::setPreset_3(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
@@ -198,24 +203,20 @@ void PanoPreset::setPreset_3(){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
     }
 
-    //set3x3MaskValue();  // 영상의 Mask 값 구함
-    copyImg2 = highBoost(copyImg, sbValue);
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)* imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
 
-    copyImg2 = ADFilter(copyImg, adfValue);
+    memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)* imageSize);
 
     gammaValue = 1.2;
     for(int i = 0; i < imageSize; i ++){
         *(outimg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f/ gammaValue )) * 255 + 0.f   );
     }
 
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-
+    presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }   //preset 3
 
 void PanoPreset::setPreset_4(){
@@ -241,18 +242,15 @@ void PanoPreset::setPreset_4(){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
-    //set3x3MaskValue();  // 영상의 Mask 값 구함
-    copyImg2 = highBoost(copyImg, sbValue);
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
 
-    outimg = ADFilter(copyImg, adfValue);
+    memcpy(outimg, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
 
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 void PanoPreset::setPreset_5(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
@@ -265,7 +263,7 @@ void PanoPreset::setPreset_5(){
     int brightValue = 40;
     int sbValue = 6;
     int contrastValue = 70;
-    int deNoiseValue = 18;
+    int deNoiseValue = 5;
     double gammaValue = 1.0;
 
     int bright = brightValue / 2.5;
@@ -277,30 +275,26 @@ void PanoPreset::setPreset_5(){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = highBoost(copyImg, sbValue);
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
 
-    copyImg2 = ADFilter(copyImg, adfValue);
+    memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
 
     gammaValue = 0.8;
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = lowPassFFT(copyImg, 150);
+    memcpy(copyImg2, lowPassFFT(copyImg, 150), sizeof(unsigned char)*imageSize);
 
-    sbValue = 9;
+    memcpy(copyImg, highBoost(copyImg2, 6), sizeof(unsigned char)*imageSize);
 
-    outimg = highBoost(copyImg2, sbValue);
+    memcpy(outimg, ADFilter(copyImg, 18), sizeof(unsigned char)*imageSize);
 
-
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-
+    presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
 void PanoPreset::setPreset_6(){
@@ -311,11 +305,11 @@ void PanoPreset::setPreset_6(){
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int brightValue = 20;
+    int brightValue = 40;
     int sbValue = 6;
     int contrastValue = 70;
-    int deNoiseValue = 18;
-    double gammaValue = 0.8;
+    int deNoiseValue = 5;
+    double gammaValue = 0.6;
 
     int bright = brightValue / 2.5;
     int adfValue = 2 * deNoiseValue;
@@ -326,29 +320,26 @@ void PanoPreset::setPreset_6(){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = highBoost(copyImg, sbValue);
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
 
-    copyImg2 = ADFilter(copyImg, adfValue);
+    memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
 
     gammaValue = 0.8;
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
-    copyImg2 = lowPassFFT(copyImg, 150);
+    memcpy(copyImg2, lowPassFFT(copyImg, 150), sizeof(unsigned char)*imageSize);
 
-    sbValue = 9;
+    memcpy(copyImg, highBoost(copyImg2, 6), sizeof(unsigned char)*imageSize);
 
-    outimg = highBoost(copyImg2, sbValue);
+    memcpy(outimg, ADFilter(copyImg, 18), sizeof(unsigned char)*imageSize);
 
-
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    presetImg6 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
 unsigned char* PanoPreset::highBoost(int sbValue){
@@ -361,7 +352,6 @@ unsigned char* PanoPreset::highBoost(int sbValue){
     }
 
     return outimg;
-    //hiBoostImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 }
 unsigned char* PanoPreset::highBoost(unsigned char* in, int sbValue){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);

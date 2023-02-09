@@ -53,8 +53,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(panoramaForm, SIGNAL(sendPanoAdj(QPixmap&)),
             panoValueAdjustment, SLOT(receiveFile(QPixmap&)));
     /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
-    connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int, int)),
-            panoValueAdjustment, SLOT(changePanoValue(int, int, int, int)));
+    connect(panoramaForm, SIGNAL(sendPanoValue(int, int, int, int, int)),
+            panoValueAdjustment, SLOT(changePanoValue(int, int, int, int, int)));
     /* 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(panoValueAdjustment, SIGNAL(panoImgSend(QPixmap&)),
             panoramaForm, SLOT(receieveImg(QPixmap&)));
@@ -83,8 +83,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(cephaloForm, SIGNAL(sendCephAdj(QPixmap&)),
             cephValueAdjustment, SLOT(receiveFile(QPixmap&)));
     /* 밝기, 대조, 블러 DeNoise Value SIGNAL/SLOT */
-    connect(cephaloForm, SIGNAL(sendCephValue(int, int, int, int)),
-            cephValueAdjustment, SLOT(changeCephValue(int, int, int, int)));
+    connect(cephaloForm, SIGNAL(sendCephValue(int, int, int, int, int)),
+            cephValueAdjustment, SLOT(changeCephValue(int, int, int, int, int)));
     /* 연산 결과 pixmap 반환 SIGNAL/SLOT */
     connect(cephValueAdjustment, SIGNAL(cephImgSend(QPixmap&)),
             cephaloForm, SLOT(receieveImg(QPixmap&)));

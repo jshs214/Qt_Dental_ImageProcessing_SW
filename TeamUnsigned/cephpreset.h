@@ -20,11 +20,12 @@ signals:
 
 private:
     QImage defaultImg, image;
-    QImage presetImg;
+    QImage presetImg1,presetImg2,presetImg3,presetImg4,presetImg5,presetImg6;
 
     QPixmap pixmap;
-    unsigned char * inimg, *mask, *outimg ,*copyImg, *copyImg2;
-
+    unsigned char * inimg, *mask, *outimg ;
+    unsigned char *copyImg, *copyImg2;
+    unsigned char *fftImg;
 
     int width, height, imageSize;
     int cephViewWidth = 800;

@@ -70,11 +70,18 @@ private slots:
 
     void on_filterPushButton_clicked();
 
+    void on_gammaPlusButton_clicked();
+
+    void on_gammaMinusButton_clicked();
+
+    void on_gammaSlider_valueChanged(int value);
+
 private:
     Ui::PanoramaForm *ui;
     QFile* file;
     QImage defaultImg;
     QPixmap defaultPixmap, prevPixmap;
+
     DentalImageView* dentalImageView;
     FilterButtonForm* filterWidget;
 
@@ -82,16 +89,18 @@ private:
     int imageHeight;
     int panoImgLabelWidth = 360;
     int panoImgLabelHeight = 260;
+
     int brightValue;
     int contrastValue;
     int sbValue;
+    int gammaValue;
     int deNoiseValue;
 
 signals:
     void sendPanoView(QPixmap);
     void sendPanoAdj(QPixmap&);
 
-    void sendPanoValue(int, int, int, int);  //밝기, 대조, 필터 값
+    void sendPanoValue(int, int, int, int, int);  //밝기, 대조, 필터 값
 
     void sendResetPano(QPixmap&);
     void savePanoSignal();
