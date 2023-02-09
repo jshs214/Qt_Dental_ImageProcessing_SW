@@ -25,6 +25,7 @@ private:
 
     QPixmap pixmap;
     unsigned char * inimg, *mask, *outimg, *copyImg, *copyImg2;
+    unsigned char * fftImg;
 
     int width, height, imageSize;
     int dentalViewWidth = 1000;
@@ -43,6 +44,9 @@ private:
     unsigned char* highBoost(int);
     unsigned char* highBoost(unsigned char*, int);
     unsigned char* ADFilter(unsigned char* ,int);
+
+    unsigned char* lowPassFFT(unsigned char*, int cutoff);
+    unsigned char* highPassFFT(unsigned char*, int cutoff);
 };
 
 #endif // PANOPRESET_H

@@ -1,4 +1,5 @@
 #include "panopreset.h"
+#include "fourierprocessing.h"
 #include "qdebug.h"
 
 #include <QImage>
@@ -28,6 +29,9 @@ void PanoPreset::receiveFile(QPixmap& roadPixmap){
     copyImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
     copyImg2 = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
 
+    fftImg = (unsigned char*)malloc(sizeof(unsigned char) * dentalViewWidth * dentalViewHeight);
+
+    memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth * dentalViewHeight);
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(mask, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
@@ -102,13 +106,13 @@ void PanoPreset::setPreset_1(){
     int sbValue = 3;
     int contrastValue = 20;
 
-    double gammaValue = 0.8;
+    double gammaValue = 0.6;
 
     float contrast;
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
     copyImg2 = (highBoost(copyImg, sbValue));
@@ -136,13 +140,13 @@ void PanoPreset::setPreset_2(){
     int sbValue = 3;
     int contrastValue = 20;
 
-    double gammaValue = 0.8;
+    double gammaValue = 0.6;
 
     float contrast;
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f/ gammaValue )) * 255 + 0.f   );
     }
 
     copyImg2 = (highBoost(copyImg, sbValue));
@@ -172,23 +176,6 @@ void PanoPreset::setPreset_2(){
 
 }   //preset2
 void PanoPreset::setPreset_3(){
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
-
-    double gammaValue = 0.6;
-
-    for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
-    }
-
-    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-}   //preset 3
-
-void PanoPreset::setPreset_4(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
 
@@ -228,8 +215,10 @@ void PanoPreset::setPreset_4(){
     }
 
     presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
-}
-void PanoPreset::setPreset_5(){
+
+}   //preset 3
+
+void PanoPreset::setPreset_4(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
 
@@ -241,7 +230,7 @@ void PanoPreset::setPreset_5(){
     int sbValue = 6;
     int contrastValue = 50;
     int deNoiseValue = 5;
-    double gammaValue = 0.8;
+    double gammaValue = 0.6;
 
     int bright = brightValue / 2.5;
     int adfValue = 2 * deNoiseValue;
@@ -249,7 +238,7 @@ void PanoPreset::setPreset_5(){
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
 
     //set3x3MaskValue();  // 영상의 Mask 값 구함
@@ -264,8 +253,56 @@ void PanoPreset::setPreset_5(){
     outimg = ADFilter(copyImg, adfValue);
 
     presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+}
+void PanoPreset::setPreset_5(){
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();       //inimg 초기화
+
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    int brightValue = 40;
+    int sbValue = 6;
+    int contrastValue = 70;
+    int deNoiseValue = 18;
+    double gammaValue = 1.0;
+
+    int bright = brightValue / 2.5;
+    int adfValue = 2 * deNoiseValue;
+    float contrast;
+    contrast = (100.0+contrastValue/2)/100.0;
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
+    }
+
+    copyImg2 = highBoost(copyImg, sbValue);
+
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
+    }
+
+    copyImg2 = ADFilter(copyImg, adfValue);
+
+    gammaValue = 0.8;
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
+    }
+
+    copyImg2 = lowPassFFT(copyImg, 150);
+
+    sbValue = 9;
+
+    outimg = highBoost(copyImg2, sbValue);
+
+
+    presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 
 }
+
 void PanoPreset::setPreset_6(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
@@ -276,8 +313,8 @@ void PanoPreset::setPreset_6(){
 
     int brightValue = 20;
     int sbValue = 6;
-    int contrastValue = 50;
-    int deNoiseValue = 5;
+    int contrastValue = 70;
+    int deNoiseValue = 18;
     double gammaValue = 0.8;
 
     int bright = brightValue / 2.5;
@@ -301,8 +338,15 @@ void PanoPreset::setPreset_6(){
 
     gammaValue = 0.8;
     for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
+
+    copyImg2 = lowPassFFT(copyImg, 150);
+
+    sbValue = 9;
+
+    outimg = highBoost(copyImg2, sbValue);
+
 
     presetImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
 }
@@ -507,4 +551,42 @@ void PanoPreset::set3x3MaskValue(){
         }
     }
 
+}
+
+unsigned char* PanoPreset::lowPassFFT(unsigned char* in, int cutoff){
+    memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
+
+    QImage currentImg;
+
+    FourierProcessing fourier(dentalViewWidth, dentalViewHeight, in);
+
+    fourier.lowPassGaussian(fftImg, cutoff);
+
+    currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8);
+
+    QPixmap fourierPixmap;
+    fourierPixmap = pixmap.fromImage(currentImg);
+
+    fourier.deleteMemory();
+
+    return currentImg.bits();
+}
+unsigned char* PanoPreset::highPassFFT(unsigned char* in, int cutoff){
+    memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
+
+    QImage currentImg;
+
+    FourierProcessing fourier(dentalViewWidth, dentalViewHeight, in);
+
+    fourier.highFrequencyPass(fftImg, cutoff);
+
+    currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8);
+
+    QPixmap fourierPixmap;
+    fourierPixmap = pixmap.fromImage(currentImg);
+
+
+    fourier.deleteMemory();
+
+    return currentImg.bits();
 }

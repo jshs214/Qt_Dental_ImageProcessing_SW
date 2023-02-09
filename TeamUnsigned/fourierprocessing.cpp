@@ -223,7 +223,7 @@ void FourierProcessing::OnIFFT2d(ubyte8* outimg)
 
             if (0 <= x && x < scaledWidth) {
                 if (0 <= y && y < scaledHeight) {
-                    outimg[x + y*scaledWidth] = m_OutputImage[(pow2width-1-x) + (pow2height-1-y) * pow2width];
+                    outimg[x + y*scaledWidth] = m_OutputImage[(pow2width-x) + (pow2height-y) * pow2width];
                 }
             }
         }
