@@ -41,7 +41,12 @@ MainWindow::MainWindow(QWidget *parent)
     /* ui 설정 */
     ui->stackedWidget->insertWidget(0, panoramaForm);
     ui->stackedWidget->insertWidget(1, cephaloForm);
-    ui->stackedWidget->setCurrentIndex(0);
+
+    /* DB Load SIGNAL/SLOT*/
+    connect(this, SIGNAL(loadPanoDB(QString)),
+            panoramaForm, SLOT(loadDB_Data(QString)));
+    connect(this, SIGNAL(loadCephDB(QString)),
+            cephaloForm, SLOT(loadDB_Data(QString)));
 
     /* panorama SIGNAL/SLOT */
     /* Load 시, 이미지 경로 SIGNAL/SLOT */
@@ -101,17 +106,46 @@ MainWindow::MainWindow(QWidget *parent)
     /* preset_ Reset  SIGNAL/SLOT*/
     connect(cephaloForm, SIGNAL(sendSetReset()),
             cephValueAdjustment, SLOT(setResetImg()));
+
+    /*필터 버튼 값 전달 */
+    connect(cephaloForm, SIGNAL(sendCutOffValue(int)),
+            cephValueAdjustment, SLOT(lowPassFFT(int)));
+    connect(cephaloForm, SIGNAL(send2CutoffValue(int)),
+            cephValueAdjustment, SLOT(highPassFFT(int)));
+    connect(cephaloForm, SIGNAL(sendMedianValue(int)),
+            cephValueAdjustment, SLOT(median(int)));
+
+    connect(panoramaForm, SIGNAL(sendCutOffValue(int)),
+            panoValueAdjustment, SLOT(lowPassFFT(int)));
+    connect(panoramaForm, SIGNAL(send2CutOffValue(int)),
+            panoValueAdjustment, SLOT(highPassFFT(int)));
+    connect(panoramaForm, SIGNAL(sendMedianValue(int)),
+            panoValueAdjustment, SLOT(median(int)));
+
+    /* MainWindow 종료 */
+    connect(panoramaForm, SIGNAL(exitPanoSignal()),
+            this, SLOT(close()));
+    connect(cephaloForm, SIGNAL(exitCephSignal()),
+            this, SLOT(close()));
+
+
 }
 
 MainWindow::~MainWindow()
 {
+    qDebug()<<"Success Close MainWindow !!!";
     delete panoramaForm;
     delete cephaloForm;
     delete panoValueAdjustment;
     delete cephValueAdjustment;
+    delete panoPreset;
+    delete cephPreset;
     delete ui;
 }
-
+void MainWindow::closeEvent(QCloseEvent *event){
+    Q_UNUSED(event);
+    emit closeMainWindow();
+}
 void MainWindow::on_panoToolButton_clicked()
 {
     ui->stackedWidget->setCurrentIndex(0);
@@ -126,6 +160,21 @@ void MainWindow::on_cephToolButton_clicked()
     ui->panoToolButton->setStyleSheet("");
     ui->cephToolButton->setStyleSheet("background-color: rgb(35, 190, 212);"
                                       "color: rgb(255, 255, 255);");
-
 }
 
+void MainWindow::setReceiveMainWindow(QString type, QString cephPath, QString panoPath){
+    if(type == "Pano"){
+        ui->stackedWidget->setCurrentIndex(0);
+        ui->cephToolButton->setStyleSheet("");
+        ui->panoToolButton->setStyleSheet("background-color: rgb(35, 190, 212);"
+                                          "color: rgb(255, 255, 255);");
+    }
+    else if(type == "Ceph"){
+        ui->stackedWidget->setCurrentIndex(1);
+        ui->panoToolButton->setStyleSheet("");
+        ui->cephToolButton->setStyleSheet("background-color: rgb(35, 190, 212);"
+                                          "color: rgb(255, 255, 255);");
+    }
+    emit loadPanoDB(panoPath);
+    emit loadCephDB(cephPath);
+}

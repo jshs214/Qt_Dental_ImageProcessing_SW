@@ -23,8 +23,6 @@ CephaloForm::CephaloForm(QWidget *parent) :
 
     ui->verticalLayout_7->insertWidget(2, cephImageView);
 
-    connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
-
     /* Send CephaloImg to View*/
     connect(this, SIGNAL(sendCephView(QPixmap)),
             cephImageView, SLOT(receiveLoadImg(QPixmap)));
@@ -37,13 +35,75 @@ CephaloForm::CephaloForm(QWidget *parent) :
     /* panoimg save 하기위한 SIGNAL/SLOT */
     connect(cephImageView, SIGNAL(sendSave(QImage&)),
             this, SLOT(cephImageSave(QImage&)));
+
 }
 
 CephaloForm::~CephaloForm()
 {
     delete ui;
 }
+void CephaloForm::loadDB_Data(QString cephPath){
+    if(cephPath == "")  return;
 
+    QPixmap pixmap;
+
+    QString extension = cephPath.split("/").last().split(".").last();
+
+    if( extension == "raw"){
+        file = new QFile(cephPath);
+
+        file->open(QFile::ReadOnly);
+
+        QByteArray byteArray;
+        byteArray = file->readAll();
+
+        unsigned char* data = new unsigned char[ byteArray.size() ];
+        memcpy( data, byteArray.data(), byteArray.size() );
+
+        QImage image; //declare variables on header file
+        QImage *temp = new QImage(data, 3000, 2400,QImage::Format_Grayscale16);
+
+        image = *temp;
+
+        pixmap = QPixmap::fromImage(image,Qt::AutoColor);
+
+    }
+    else if( extension != "raw"){
+        pixmap.load(cephPath);
+    }
+
+    emit sendCephAdj(pixmap);
+
+    QStringList nameStr = cephPath.split("/").last().split(".");
+    QString fileName = nameStr.first();
+    ui->pathLineEdit->setText(fileName);
+
+    if(!pixmap.isNull()) {
+        emit sendCephView(pixmap);
+        ui->cephImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
+        defaultImg = pixmap.toImage();
+        defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+        ui->progressbarLabel->setText("Success Load Panorama Image !!!");
+    }
+    file->close();
+    delete file;
+
+    ui->ceph_Preset_Button1->setStyleSheet("");
+    ui->ceph_Preset_Button2->setStyleSheet("");
+    ui->ceph_Preset_Button3->setStyleSheet("");
+    ui->ceph_Preset_Button4->setStyleSheet("");
+    ui->ceph_Preset_Button5->setStyleSheet("");
+    ui->ceph_Preset_Button6->setStyleSheet("");
+
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
+
+    for(int i = 0; i <= 100; i ++)
+        ui->ceph_ProgressBar->setValue(i);
+
+}
 void CephaloForm::on_brightSlider_valueChanged(int brightValue)
 {
     QPixmap pixmap;
@@ -482,4 +542,45 @@ void CephaloForm::on_hePushButton_clicked()
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
 }
+
+
+void CephaloForm::on_exitButton_clicked()
+{
+    emit exitCephSignal();
+}
+
+void CephaloForm::on_filterPushButton_clicked()
+{
+    filterWidget = new FilterButtonForm;
+
+    connect(filterWidget, SIGNAL(cephLowPassCutOff(int)),
+            this, SLOT(sendFourierSignal(int)));
+    connect(filterWidget, SIGNAL(cephHighPassCutOff(int)),
+            this, SLOT(send2FourierSignal(int)));
+    connect(filterWidget, SIGNAL(sendCephMedian(int)),
+            this, SLOT(sendMedianSignal(int)));
+
+    if (filterWidget->getTitle() == "Panorama")
+        filterWidget->exit();
+
+    filterWidget->setTitle("Cephalo");
+    filterWidget->show();
+}
+
+/******************** 시그널/ 슬롯 추가 **********************/
+void CephaloForm::sendFourierSignal(int cutoff) {
+
+    emit sendCutOffValue(cutoff);
+}
+
+void CephaloForm::send2FourierSignal(int cutoff) {
+
+    emit send2CutoffValue(cutoff);
+}
+
+void CephaloForm::sendMedianSignal(int value) {
+
+    emit sendMedianValue(value);
+}
+
 

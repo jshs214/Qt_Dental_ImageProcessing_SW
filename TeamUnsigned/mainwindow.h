@@ -29,9 +29,18 @@ public:
     PanoPreset* panoPreset;
     CephPreset* cephPreset;
 
+protected:
+    void closeEvent(QCloseEvent *event);
+signals:
+    void loadPanoDB(QString);
+    void loadCephDB(QString);
+
+    void closeMainWindow();
 private slots:
     void on_panoToolButton_clicked();
     void on_cephToolButton_clicked();
+
+    void setReceiveMainWindow(QString, QString, QString);
 
 private:
     Ui::MainWindow *ui;

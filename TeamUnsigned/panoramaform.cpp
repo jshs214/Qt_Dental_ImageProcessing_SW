@@ -9,12 +9,9 @@
 #include <QPainter>
 #include <QMessageBox>
 
-#define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
+#include "filterbuttonform.h"
 
-unsigned char clip(int value, int min, int max)
-{
-    return(value > max? max : value < min? min : value);
-}
+#define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
 
 PanoramaForm::PanoramaForm(QWidget *parent) :
     QWidget(parent),
@@ -25,11 +22,7 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
     dentalImageView = new DentalImageView;
     dentalImageView->setFixedSize(1020, 655);
 
-    //dentalImageView->setStyleSheet("border: 1px solid rgb(184,191,200);");
-
     ui->verticalLayout_7->insertWidget(2, dentalImageView);
-
-    connect(ui->exitButton, SIGNAL(clicked()), qApp, SLOT(closeAllWindows()) ); //종료 버튼
 
     /* Send PanoramaImg to View*/
     connect(this, SIGNAL(sendPanoView(QPixmap)),
@@ -52,6 +45,68 @@ PanoramaForm::~PanoramaForm()
 }
 
 /********************************************************************************************/
+void PanoramaForm::loadDB_Data(QString panoPath){
+    if(panoPath == "")return;
+
+    QPixmap pixmap;
+
+    QString extension = panoPath.split("/").last().split(".").last();
+
+    if( extension == "raw"){
+        file = new QFile(panoPath);
+
+        file->open(QFile::ReadOnly);
+
+        QByteArray byteArray;
+        byteArray = file->readAll();
+
+        unsigned char* data = new unsigned char[ byteArray.size() ];
+        memcpy( data, byteArray.data(), byteArray.size() );
+
+        QImage image; //declare variables on header file
+        QImage *temp = new QImage(data, 3000, 1628,QImage::Format_Grayscale16);
+
+        image = *temp;
+
+        pixmap = QPixmap::fromImage(image,Qt::AutoColor);
+
+    }
+    else if( extension != "raw"){
+        pixmap.load(panoPath);
+    }
+
+    emit sendPanoAdj(pixmap);
+
+    QStringList nameStr = panoPath.split("/").last().split(".");
+    QString fileName = nameStr.first();
+    ui->pathLineEdit->setText(fileName);
+
+    if(!pixmap.isNull()) {
+        emit sendPanoView(pixmap);
+        ui->panoImgLabel->setPixmap(pixmap.scaled(panoImgLabelWidth, panoImgLabelHeight));
+        defaultImg = pixmap.toImage();
+        defaultPixmap =  defaultPixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
+        ui->progressbarLabel->setText("Success Load Panorama Image !!!");
+    }
+    file->close();
+    delete file;
+
+    ui->preset_Button1->setStyleSheet("");
+    ui->preset_Button2->setStyleSheet("");
+    ui->preset_Button3->setStyleSheet("");
+    ui->preset_Button4->setStyleSheet("");
+    ui->preset_Button5->setStyleSheet("");
+    ui->preset_Button6->setStyleSheet("");
+
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
+
+    for(int i = 0; i <= 100; i ++)
+        ui->panoProgressBar->setValue(i);
+
+}
 /********************************************************************************************/
 void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
 {
@@ -85,14 +140,13 @@ void PanoramaForm::on_brightMinusButton_clicked()
 void PanoramaForm::on_brightPlusButton_clicked()
 {
     if(defaultPixmap.isNull())  return;
-    else {
-        brightValue = ui->brightSlider->value();
-        brightValue += 10;
-        if(brightValue > 100) return;
-        ui->brightSlider->setValue(brightValue);
-        ui->brightLineEdit->setText( QString::number(brightValue) );
+    brightValue = ui->brightSlider->value();
+    brightValue += 10;
+    if(brightValue > 100) return;
+    ui->brightSlider->setValue(brightValue);
+    ui->brightLineEdit->setText( QString::number(brightValue) );
 
-    }
+
 }
 
 
@@ -117,27 +171,25 @@ void PanoramaForm::on_contrastSlider_valueChanged(int contrastValue)
 void PanoramaForm::on_contrastMinusButton_clicked()
 {
     if(defaultPixmap.isNull())  return;
-    else {
-        contrastValue = ui->contrastSlider->value();
-        contrastValue -= 10;
-        if(contrastValue < -100) return;
-        ui->contrastSlider->setValue(contrastValue);
-        ui->contrastLineEdit->setText( QString::number(contrastValue) );
 
-    }
+    contrastValue = ui->contrastSlider->value();
+    contrastValue -= 10;
+    if(contrastValue < -100) return;
+    ui->contrastSlider->setValue(contrastValue);
+    ui->contrastLineEdit->setText( QString::number(contrastValue) );
+
+
 }
 
 void PanoramaForm::on_contrastPlusButton_clicked()
 {
     if(defaultPixmap.isNull())  return;
-    else {
-        contrastValue = ui->contrastSlider->value();
-        contrastValue += 10;
-        if(contrastValue > 100) return;
-        ui->contrastSlider->setValue(contrastValue);
-        ui->contrastLineEdit->setText( QString::number(contrastValue) );
+    contrastValue = ui->contrastSlider->value();
+    contrastValue += 10;
+    if(contrastValue > 100) return;
+    ui->contrastSlider->setValue(contrastValue);
+    ui->contrastLineEdit->setText( QString::number(contrastValue) );
 
-    }
 }
 
 /********************************************************************************************/
@@ -212,7 +264,7 @@ void PanoramaForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
     emit sendPanoValue(brightValue, contrastValue, sbValue, deNoiseValue);
 
     ui->deNoiseLineEdit->setText( QString::number(ui->deNoiseSlider->value()) );
-    \
+
 }
 
 
@@ -395,7 +447,6 @@ void PanoramaForm::on_filePushButton_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(this, "Open file",
                                                     "C:\\Users\\KOSA\\OneDrive\\바탕 화면\\PostData");
-
     QPixmap pixmap;
 
     if(filename.length()) {          // 파일이 존재한다면
@@ -522,6 +573,42 @@ void PanoramaForm::on_hePushButton_clicked()
     ui->deNoiseSlider->setValue(0);
 }
 
+void PanoramaForm::on_exitButton_clicked(){
+    emit exitPanoSignal();
+}
 
+
+void PanoramaForm::on_filterPushButton_clicked()
+{
+    filterWidget = new FilterButtonForm;
+
+    connect(filterWidget, SIGNAL(panoLowPassCutOff(int)),
+            this, SLOT(sendFourierSignal(int)));
+    connect(filterWidget, SIGNAL(panoHighPassCutOff(int)),
+            this, SLOT(send2FourierSignal(int)));
+    connect(filterWidget, SIGNAL(sendPanoMedian(int)),
+            this, SLOT(sendMedianSignal(int)));
+
+    if (filterWidget->getTitle() == "Cephalo")
+        filterWidget->exit();
+
+    filterWidget->setTitle("Panorama");
+    filterWidget->show();
+}
+
+/******************** 시그널/ 슬롯 추가 **********************/
+void PanoramaForm::sendFourierSignal(int cutoff) {
+
+    emit sendCutOffValue(cutoff);
+}
+
+void PanoramaForm::send2FourierSignal(int cutoff) {
+    emit send2CutOffValue(cutoff);
+}
+
+void PanoramaForm::sendMedianSignal(int value) {
+
+    emit sendMedianValue(value);
+}
 
 

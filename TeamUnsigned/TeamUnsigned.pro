@@ -14,12 +14,16 @@ SOURCES += \
     cephpreset.cpp \
     cephvalueadjustment.cpp \
     dentalimageview.cpp \
+    filterbuttonform.cpp \
+    fourierprocessing.cpp \
     histogram.cpp \
+    listwidget.cpp \
     main.cpp \
     mainwindow.cpp \
     panopreset.cpp \
     panoramaform.cpp \
-    panovalueadjustment.cpp
+    panovalueadjustment.cpp \
+    xraydb.cpp
 
 HEADERS += \
     cephaloform.h \
@@ -27,16 +31,23 @@ HEADERS += \
     cephpreset.h \
     cephvalueadjustment.h \
     dentalimageview.h \
+    filterbuttonform.h \
+    fourierprocessing.h \
     histogram.h \
+    listwidget.h \
     mainwindow.h \
     panopreset.h \
     panoramaform.h \
-    panovalueadjustment.h
+    panovalueadjustment.h \
+    xraydb.h
 
 FORMS += \
     cephaloform.ui \
+    filterbuttonform.ui \
+    listwidget.ui \
     mainwindow.ui \
-    panoramaform.ui
+    panoramaform.ui \
+    xraydb.ui
 
 TRANSLATIONS += \
     TeamUnsigned_ko_KR.ts

@@ -17,6 +17,7 @@ private:
 
     unsigned char* inimg;
     unsigned char  *mask, *outimg, *sharpenImg, *copyImg;
+    unsigned char *fftImg, *medianFilterImg;
 
     int width = 0, height = 0, imageSize = 0;
 
@@ -27,9 +28,6 @@ private:
     void set3x3MaskValue();
 
    void highBoost(int);
-   void blur3x3(int);
-   void blur5x5();
-
    void sharpen(int);// 세팔로 샤픈 임시 저장
    void gaussian(float);
    void ADFilter(unsigned char* ,int);
@@ -40,6 +38,9 @@ private slots:
    void receivePrev(QPixmap&); //prevImg receive
    void receiveSetPresetImg(QPixmap&);
    void setResetImg();
+   void median(int value);
+   void lowPassFFT(int cutoff);
+   void highPassFFT(int cutoff);
 
 signals:
     void cephImgSend(QPixmap&);

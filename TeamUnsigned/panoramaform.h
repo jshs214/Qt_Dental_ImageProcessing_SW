@@ -8,6 +8,7 @@
 
 class QFile;
 class DentalImageView;
+class FilterButtonForm;
 
 namespace Ui {
 class PanoramaForm;
@@ -23,6 +24,8 @@ public:
 protected:
 
 private slots:
+    void loadDB_Data(QString);
+
     void on_filePushButton_clicked();
 
     void on_brightSlider_valueChanged(int value);
@@ -59,12 +62,21 @@ private slots:
     void on_deNoiseMinusButton_clicked();
     void on_deNoiseSlider_valueChanged(int value);
 
+    void on_exitButton_clicked();
+
+    void sendFourierSignal(int);
+    void send2FourierSignal(int);
+    void sendMedianSignal(int);
+
+    void on_filterPushButton_clicked();
+
 private:
     Ui::PanoramaForm *ui;
     QFile* file;
     QImage defaultImg;
     QPixmap defaultPixmap, prevPixmap;
     DentalImageView* dentalImageView;
+    FilterButtonForm* filterWidget;
 
     int imageWidth;
     int imageHeight;
@@ -87,6 +99,11 @@ signals:
     void sendPanoPrev(QPixmap&);
     void sendPanoPreset(int);
     void sendSetReset();
+    void exitPanoSignal();
+
+    void sendCutOffValue(int);
+    void send2CutOffValue(int);
+    void sendMedianValue(int);
 };
 
 #endif // PANORAMAFORM_H
