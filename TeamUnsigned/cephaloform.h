@@ -89,6 +89,8 @@ private slots:
     void on_gammaMinusButton_clicked();
     void on_gammaSlider_valueChanged(int value);
 
+    void resetFilCalcValue();
+
 signals:
 
     void sendCephView(QPixmap);

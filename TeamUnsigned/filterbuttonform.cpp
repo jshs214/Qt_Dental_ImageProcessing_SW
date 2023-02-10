@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QValidator>
+#include <QSettings>
 
 typedef quint8 ubyte8;
 
@@ -27,6 +28,8 @@ FilterButtonForm::~FilterButtonForm()
 
 void FilterButtonForm::closeEvent(QCloseEvent *event){
     Q_UNUSED(event);
+    if(ui->titleLabel->text() == "Cephalo") cephWriteSettings();
+    if(ui->titleLabel->text() == "Panorama") panoWriteSettings();
     FilterButtonForm::~FilterButtonForm();
 }
 
@@ -40,6 +43,45 @@ QString FilterButtonForm::getTitle() {
 
 void FilterButtonForm::exit() {
     this->close();
+}
+
+void FilterButtonForm::cephWriteSettings()
+{
+    QSettings settings("FilterFormCeph.ini", QSettings::IniFormat);
+    settings.beginGroup("FilterFormCeph");
+    settings.setValue("name", ui->sortComboBox->currentIndex());
+    settings.setValue("value", ui->valueLineEdit->text());
+    settings.endGroup();
+}
+
+
+void FilterButtonForm::panoWriteSettings()
+{
+    QSettings settings("FilterFormPano.ini", QSettings::IniFormat);
+    settings.beginGroup("FilterFormPano");
+    settings.setValue("name", ui->sortComboBox->currentIndex());
+    settings.setValue("value", ui->valueLineEdit->text());
+    settings.endGroup();
+}
+
+
+void FilterButtonForm::cephReadSettings()
+{
+    QSettings settings("FilterFormCeph.ini", QSettings::IniFormat);
+    settings.beginGroup("FilterFormCeph");
+    ui->sortComboBox->setCurrentIndex(settings.value("name").toInt());
+    ui->valueLineEdit->setText(settings.value("value").toString());
+    settings.endGroup();
+}
+
+
+void FilterButtonForm::panoReadSettings()
+{
+    QSettings settings("FilterFormPano.ini", QSettings::IniFormat);
+    settings.beginGroup("FilterFormPano");
+    ui->sortComboBox->setCurrentIndex(settings.value("name").toInt());
+    ui->valueLineEdit->setText(settings.value("value").toString());
+    settings.endGroup();
 }
 
 void FilterButtonForm::on_okPushButton_clicked()

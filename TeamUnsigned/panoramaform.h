@@ -71,10 +71,10 @@ private slots:
     void on_filterPushButton_clicked();
 
     void on_gammaPlusButton_clicked();
-
     void on_gammaMinusButton_clicked();
-
     void on_gammaSlider_valueChanged(int value);
+
+    void resetFilCalcValue();
 
 private:
     Ui::PanoramaForm *ui;

@@ -196,8 +196,24 @@
                          <height>16777215</height>
                         </size>
                        </property>
+                       <property name="styleSheet">
+                        <string notr="true">QPushButton{
+background-color:rgb(240,240,240);
+border:none;
+}
+QPushButton:hover
+{
+border: 1px solid red;
+background-color: rgb(103, 104, 114);
+}
+QPushButton:pressed
+{
+background-color: rgb(35,190,212);
+color: rgb(255, 255, 255);
+}</string>
+                       </property>
                        <property name="text">
-                        <string>P</string>
+                        <string/>
                        </property>
                       </widget>
                      </item>
@@ -276,8 +292,24 @@
                        <height>16777215</height>
                       </size>
                      </property>
+                     <property name="styleSheet">
+                      <string notr="true">QPushButton{
+background-color:rgb(240,240,240);
+border:none;
+}
+QPushButton:hover
+{
+border: 1px solid red;
+background-color: rgb(103, 104, 114);
+}
+QPushButton:pressed
+{
+background-color: rgb(35,190,212);
+color: rgb(255, 255, 255);
+}</string>
+                     </property>
                      <property name="text">
-                      <string>P</string>
+                      <string/>
                      </property>
                     </widget>
                    </item>
@@ -482,16 +514,16 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="deletePushButton">
+            <widget class="QPushButton" name="modifyPushButton">
              <property name="text">
-              <string>Delete</string>
+              <string>Modify</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="modifyPushButton">
+            <widget class="QPushButton" name="deletePushButton">
              <property name="text">
-              <string>Modify</string>
+              <string>Delete</string>
              </property>
             </widget>
            </item>

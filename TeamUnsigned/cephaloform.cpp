@@ -458,6 +458,7 @@ void CephaloForm::on_resetButton_clicked()
     QPixmap pixmap;
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
 
+    qDebug()<<"Reset : "<<__FUNCTION__ << __LINE__ << pixmap;
     emit sendResetCeph(pixmap);
     emit sendSetReset();
 }
@@ -617,6 +618,7 @@ void CephaloForm::on_filterPushButton_clicked()
         filterWidget->exit();
 
     filterWidget->setTitle("Cephalo");
+    filterWidget->cephReadSettings();
     filterWidget->show();
 }
 
@@ -635,5 +637,11 @@ void CephaloForm::sendMedianSignal(int value) {
 
     emit sendMedianValue(value);
 }
-
+void CephaloForm::resetFilCalcValue(){
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
+}
 

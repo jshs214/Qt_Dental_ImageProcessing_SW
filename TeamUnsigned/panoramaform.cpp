@@ -37,6 +37,7 @@ PanoramaForm::PanoramaForm(QWidget *parent) :
     connect(dentalImageView, SIGNAL(sendSave(QImage&)),
             this, SLOT(panoImageSave(QImage&)));
 
+
 }
 
 PanoramaForm::~PanoramaForm()
@@ -46,6 +47,7 @@ PanoramaForm::~PanoramaForm()
 
 /********************************************************************************************/
 void PanoramaForm::loadDB_Data(QString panoPath){
+    qDebug()<<panoPath;
     if(panoPath == "")return;
 
     QPixmap pixmap;
@@ -623,6 +625,7 @@ void PanoramaForm::on_hePushButton_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 }
 
 void PanoramaForm::on_exitButton_clicked(){
@@ -645,7 +648,9 @@ void PanoramaForm::on_filterPushButton_clicked()
         filterWidget->exit();
 
     filterWidget->setTitle("Panorama");
+    filterWidget->panoReadSettings();
     filterWidget->show();
+
 }
 
 /******************** 시그널/ 슬롯 추가 **********************/
@@ -662,4 +667,10 @@ void PanoramaForm::sendMedianSignal(int value) {
 
     emit sendMedianValue(value);
 }
-
+void PanoramaForm::resetFilCalcValue(){
+    ui->brightSlider->setValue(0);
+    ui->contrastSlider->setValue(0);
+    ui->sbSlider->setValue(0);
+    ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
+}

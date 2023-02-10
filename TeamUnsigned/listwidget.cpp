@@ -3,7 +3,8 @@
 
 #include "mainwindow.h"
 
-ListWidget::ListWidget(int id, QString name, QString birthdate, QString directory, QString directory2, QString type, QString gender, QString path, QWidget *parent) :
+ListWidget::ListWidget(int id, QString name, QString birthdate, QString directory,
+                       QString directory2, QString type, QString gender, QString path, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ListWidget)
 {

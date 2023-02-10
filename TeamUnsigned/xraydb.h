@@ -65,5 +65,6 @@ private:
     QFile* file;
 
     QMap<int, ListWidget*> dbList;
+    QSqlTableModel* patientModel;
 };
 #endif // XRAYDB_H

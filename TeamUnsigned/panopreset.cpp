@@ -143,40 +143,18 @@ void PanoPreset::setPreset_2(){
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int sbValue = 3;
-    int contrastValue = 20;
     int brightValue = -20;
     int bright = brightValue / 2.5;
-    contrastValue = 0;
-    float contrast = (100.0+contrastValue/2)/100.0;
     double gammaValue = 0.6;
 
-
-    contrast = (100.0+contrastValue/2)/100.0;
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
+    }
+    memcpy(copyImg2, highBoost(copyImg, 3), sizeof(unsigned char) * imageSize);
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f/ gammaValue )) * 255 + 0.f   );
+        *(outimg + i) = LIMIT_UBYTE( *(copyImg2+i) + bright );
     }
-
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
-
-    contrastValue = 20;
-    contrast = (100.0+contrastValue/2)/100.0;
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  );
-    }
-
-    sbValue = 2;
-
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) +bright );
-    }
-
-    memcpy(outimg, ADFilter(copyImg, 3), sizeof(unsigned char)*imageSize);
 
     presetImg2 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }   //preset2

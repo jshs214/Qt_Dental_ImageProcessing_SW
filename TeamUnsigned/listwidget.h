@@ -19,7 +19,9 @@ class ListWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ListWidget(int id, QString name, QString birthdate, QString directory, QString directory2, QString type, QString gender, QString path,QWidget *parent = nullptr);
+    explicit ListWidget(int id, QString name, QString birthdate,
+                        QString directory, QString directory2, QString type,
+                        QString gender, QString path,QWidget *parent = nullptr);
     ~ListWidget();
 
     QString getName() ;

@@ -8,6 +8,8 @@
 #include "panopreset.h"
 #include "cephpreset.h"
 
+#include <QFile>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -122,12 +124,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(panoramaForm, SIGNAL(sendMedianValue(int)),
             panoValueAdjustment, SLOT(median(int)));
 
+    /* 필터 연산 후 slider 초기화 */
+    connect(panoValueAdjustment, SIGNAL(exitFilterSignal()),
+            panoramaForm, SLOT(resetFilCalcValue()));
+    connect(cephValueAdjustment, SIGNAL(exitFilterSignal()),
+            cephaloForm, SLOT(resetFilCalcValue()));
+
     /* MainWindow 종료 */
     connect(panoramaForm, SIGNAL(exitPanoSignal()),
             this, SLOT(close()));
     connect(cephaloForm, SIGNAL(exitCephSignal()),
             this, SLOT(close()));
-
 
 }
 
@@ -144,6 +151,8 @@ MainWindow::~MainWindow()
 }
 void MainWindow::closeEvent(QCloseEvent *event){
     Q_UNUSED(event);
+    QFile::remove("./FilterFormCeph.ini");
+    QFile::remove("./FilterFormPano.ini");
     emit closeMainWindow();
 }
 void MainWindow::on_panoToolButton_clicked()

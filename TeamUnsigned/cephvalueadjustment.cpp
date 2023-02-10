@@ -340,6 +340,8 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
     image = QImage(outimg, width, height, QImage::Format_Grayscale8);
     pixmap = pixmap.fromImage(image);
     emit cephImgSend(pixmap);
+
+    calcImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();      //연산 결과 이미지 저장
 }
 
 void CephValueAdjustment::set3x3MaskValue(){
@@ -608,9 +610,6 @@ void CephValueAdjustment::ADFilter(unsigned char * inimg, int iter){    //deNois
     float lambda = 0.25;
     float k = 4;
 
-//    QImage copyImage;
-//    copyImage = QImage(inimg,width,height,QImage::Format_Grayscale8);
-
     auto copy = (inimg);
 
     /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
@@ -782,6 +781,7 @@ void CephValueAdjustment::median(int value) {
     Q_UNUSED(value);
 
     memset(medianFilterImg, 0, sizeof(unsigned char) * imageSize);
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
 
     int imageSize = width * height;
     int rowSize = width;
@@ -893,18 +893,18 @@ void CephValueAdjustment::median(int value) {
 
     inimg = currentImg.bits();
     emit cephImgSend(medianPixmap);
+    emit exitFilterSignal();
 }
 
 
 void CephValueAdjustment::lowPassFFT(int cutoff) {
     memset(fftImg, 0, sizeof(unsigned char) * cephViewWidth*cephViewHeight);
 
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
+
     FourierProcessing fourier(cephViewWidth, cephViewHeight, inimg);
-
     fourier.lowPassGaussian(fftImg, cutoff);
-
     currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8).copy();
-
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
     emit cephImgSend(fourierPixmap);
@@ -912,17 +912,17 @@ void CephValueAdjustment::lowPassFFT(int cutoff) {
     inimg = currentImg.bits();
 
     fourier.deleteMemory();
+    emit exitFilterSignal();
 }
 
 void CephValueAdjustment::highPassFFT(int cutoff) {
     memset(fftImg, 0, sizeof(unsigned char) * cephViewWidth*cephViewHeight);
 
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
+
     FourierProcessing fourier(cephViewWidth, cephViewHeight, inimg);
-
     fourier.highFrequencyPass(fftImg, cutoff);
-
     currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8).copy();
-
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
     emit cephImgSend(fourierPixmap);
@@ -930,6 +930,7 @@ void CephValueAdjustment::highPassFFT(int cutoff) {
     inimg = currentImg.bits();
 
     fourier.deleteMemory();
+    emit exitFilterSignal();
 }
 
 
@@ -951,4 +952,6 @@ void CephValueAdjustment::setResetImg() {
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();
+
+    calcImg = QImage();
 }

@@ -45,6 +45,7 @@ void FourierProcessing::deleteMemory() {
 
 void FourierProcessing::OnFFT2d(ubyte8* outimg)
 {
+    Q_UNUSED(outimg);
     int x, y, row, col, Log2N, Num;
     Complex *Data;
 

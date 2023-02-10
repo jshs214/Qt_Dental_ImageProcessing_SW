@@ -12,9 +12,11 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QListWidget>
-#include  <QDebug>
-#include <QButtonGroup>
-#include <QPixmap>
+#include <QDebug>
+#include <QSqlQuery>
+#include <QSqlTableModel>
+#include <QSqlRecord>
+#include <QSqlError>
 
 XrayDB::XrayDB(QWidget *parent)
     : QWidget(parent)
@@ -22,7 +24,14 @@ XrayDB::XrayDB(QWidget *parent)
 {
     ui->setupUi(this);
 
+    QPixmap pixmap(":/images/folder.png");
+    QIcon ButtonIcon(pixmap);
 
+    ui->filePushButton->setIconSize(QSize(ui->filePushButton->width()*0.7,ui->filePushButton->height()*0.7));
+    ui->filePushButton2->setIconSize(QSize(ui->filePushButton->width()*0.7,ui->filePushButton->height()*0.7));
+
+    ui->filePushButton->setIcon(ButtonIcon);
+    ui->filePushButton2->setIcon(ButtonIcon);
 
     type = new QButtonGroup(this);
     type->addButton(ui->panoramaRadioButton);
@@ -42,19 +51,12 @@ XrayDB::~XrayDB()
 {
     delete ui;
 
-    QFile file("person.txt");
-
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return;
-
-    QTextStream out(&file);
-    for (const auto &v : dbList) {
-        ListWidget *L = v;
-        out << L->id() << ", " << L->getName() << ", ";
-        out << L->getBirthdate() << ", "  << L->getDirectory() << ", " << L->getDirectory2() << ", " ;
-        out << L->getType() << ", " << L->getGender() << ", " << L->getImage() <<"\n" ;
+    QSqlDatabase db = patientModel->database();
+    if(db.isOpen()) {
+        patientModel->submitAll();   // 데이터 베이스 닫기전 데이터 업데이트
+        db.close();
+        db.removeDatabase("QSQLITE");
     }
-    file.close();
     qDebug() << "Success Close Program" ;
 }
 int XrayDB::makeId()
@@ -68,31 +70,43 @@ int XrayDB::makeId()
         return ++id;
     }
 }
-
 void XrayDB::loadData()
 {
-    QFile file("person.txt");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-    { qDebug() <<  "file not opened" << Qt::endl;
-        return;
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "patient connection");
+    db.setDatabaseName("patient.db");
+    if (db.open( )) {
+        QSqlQuery query(db);        //bug 수정 -> query()안에 db를 넣어줘야함
+        query.exec("CREATE TABLE IF NOT EXISTS patient(id INTEGER Primary Key NOT NULL, name VARCHAR(30),"
+                   "birthdate VARCHAR(20), directory VARCHAR(50), "
+                   "directory2 VARCHAR(50), type VARCHAR(50), gender VARCHAR(50),"
+                   "path VARCHAR(50));");
+
+        patientModel = new QSqlTableModel(this, db);
+        patientModel->setTable("patient");
+        patientModel->select();
     }
+    for(int i = 0; i < patientModel->rowCount(); i++) {
+        int id = patientModel->data(patientModel->index(i, 0)).toInt();
+        QString name = patientModel->data(patientModel->index(i, 1)).toString();
+        QString birthdate = patientModel->data(patientModel->index(i, 2)).toString();
+        QString directory = patientModel->data(patientModel->index(i, 3)).toString();
+        QString directory2 = patientModel->data(patientModel->index(i, 4)).toString();
+        QString type = patientModel->data(patientModel->index(i, 5)).toString();
+        QString gender = patientModel->data(patientModel->index(i, 6)).toString();
+        QString path = patientModel->data(patientModel->index(i, 7)).toString();
 
-    QTextStream in(&file);
-    while(!in.atEnd())
-    {
 
-        QString line = in.readLine();
-        QList<QString> row = line.split(", ");
-        int id = row[0].toInt();
-        ListWidget* L = new ListWidget(id, row[1], row[2], row[3], row[4], row[5], row[6], row[7]);
+        ListWidget* L = new ListWidget(id, name, birthdate, directory, directory2, type, gender, path);
 
-        dbList.insert(id, L);
+        dbList.insert(id,L);    // QMap에 추가
 
         QListWidgetItem *item = new QListWidgetItem;
-
         ui->personList->addItem(item);
         item->setSizeHint(QSize(400,130));
         ui->personList->setItemWidget(item, L);
+
+        //clientList.insert(id, clientModel->index(i, 0));
+
     }
 }
 
@@ -111,7 +125,6 @@ void XrayDB::on_addPushButton_clicked()
     name = ui->nameLineEdit->text();
     birthdate = ui->birthDateLineEdit->text();
 
-
     if( ui->panoramaRadioButton->isChecked() )
     {
         type = "Pano";
@@ -125,15 +138,16 @@ void XrayDB::on_addPushButton_clicked()
     {
         gender = "Male";
 
-        image = QPixmap("male.png");
+        path = ":/images/male.png";
 
-        path = "male.png";
+        image = QPixmap(path);
+
     }
     else if(ui->femaleRadioButton->isChecked() )
     {
         gender = "Female";
 
-        path = "female.png";
+        path = ":/images/female.png";
 
         image = QPixmap(path);
     }
@@ -143,16 +157,14 @@ void XrayDB::on_addPushButton_clicked()
     ui->directoryLineEdit->setText(directory);
     ui->directoryLineEdit_2->setText(directory2);
 
-
-
-    if (ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
-            && ui->directoryLineEdit->text().length()
+    if ((ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
+         && ui->directoryLineEdit->text().length())
             ||
-            ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
-            && ui->directoryLineEdit_2->text().length()
+            (ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
+             && ui->directoryLineEdit_2->text().length())
             ||
-            ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
-            && ui->directoryLineEdit->text().length() && ui->directoryLineEdit_2->text().length()
+            (ui->nameLineEdit->text().length() && ui->birthDateLineEdit->text().length()
+             && ui->directoryLineEdit->text().length() && ui->directoryLineEdit_2->text().length())
             )
     {
         QListWidgetItem* item= new QListWidgetItem;
@@ -165,6 +177,24 @@ void XrayDB::on_addPushButton_clicked()
         ui->personList->setItemWidget(item, L);
 
         dbList.insert(id, L);
+
+
+        if(name.length()) {
+            QSqlQuery query(patientModel->database());
+            query.prepare("INSERT INTO patient VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            query.bindValue(0, id);
+            query.bindValue(1, name);
+            query.bindValue(2, birthdate);
+            query.bindValue(3, directory);
+            query.bindValue(4, directory2);
+            query.bindValue(5, type);
+            query.bindValue(6, gender);
+            query.bindValue(7, path);
+            query.exec();
+            patientModel->select();
+
+        }
+
     }
     else {
         QMessageBox::warning(this, "알림", "환자 정보를 입력해 주세요");
@@ -174,9 +204,9 @@ void XrayDB::on_addPushButton_clicked()
     ui->birthDateLineEdit->clear();
     ui->directoryLineEdit->clear();
     ui->directoryLineEdit_2->clear();
+
+    patientModel->submitAll();
 }
-
-
 void XrayDB::on_searchPushButton_clicked()
 {
 
@@ -235,6 +265,8 @@ void XrayDB::on_modifyPushButton_clicked()
 
         QString name, birthdate, directory, directory2, type, gender;
 
+        QString path;
+
         QPixmap image;
 
         name = ui->nameLineEdit->text();
@@ -258,18 +290,19 @@ void XrayDB::on_modifyPushButton_clicked()
         if(ui->maleRadioButton->isChecked() )
         {
             gender = "Male";
-
-            image = QPixmap("male.png");
+            path = ":/images/male.png";
+            image = QPixmap(path);
         }
         else if(ui->femaleRadioButton->isChecked() )
         {
             gender = "Female";
-
-            image = QPixmap("female.png");
+            path = ":/images/female.png";
+            image = QPixmap(path);
         }
 
         if (name.length())
         {
+
             item->setSizeHint(QSize(400,130));
             li->setName(name);
             li->setBirthdate(birthdate);
@@ -278,11 +311,36 @@ void XrayDB::on_modifyPushButton_clicked()
             li->setImage(image);
             li->setType(type);
             li->setGender(gender);
+
+            int id = li->id();
+
+
+            QSqlQuery query(patientModel->database());
+            query.prepare("UPDATE patient SET name = ?, birthdate = ? , directory = ?, "
+                          "directory2 = ?, type = ?, gender = ?, path = ? "
+                          "WHERE id = ? ");
+
+            query.bindValue(0, name);
+            query.bindValue(1, birthdate);
+            query.bindValue(2, directory);
+            query.bindValue(3, directory2);
+            query.bindValue(4, type);
+            query.bindValue(5, gender);
+            query.bindValue(6, path);
+            query.bindValue(7, id);
+            query.exec();
+            qDebug() << query.lastError();
+            patientModel->select();
+            patientModel->submitAll();
+
         }
         else {
             QMessageBox::warning(this, "알림", "환자 정보를 입력해 주세요");
         }
+
     }
+
+
 }
 void XrayDB::on_personList_itemClicked(QListWidgetItem *item)
 {
@@ -340,6 +398,14 @@ void XrayDB::on_deletePushButton_clicked()
     QListWidgetItem* item =  ui->personList->currentItem();
     ListWidget *L = (ListWidget*)ui->personList->itemWidget(item);
 
+    QModelIndex index = ui->personList->currentIndex();
+
+    if(index.isValid())
+    {
+        patientModel->removeRow(index.row());
+        patientModel->select();
+    }
+
     if (item != nullptr)
     {
         delete item;
@@ -347,13 +413,14 @@ void XrayDB::on_deletePushButton_clicked()
         dbList.remove(id);
     }
     update();
+    patientModel->submitAll();
 }
 
 void XrayDB::on_filePushButton_clicked()
 {
-     QString filename = QFileDialog::getOpenFileName(this);
+    QString filename = QFileDialog::getOpenFileName(this);
 
-     ui->directoryLineEdit->setText(filename);
+    ui->directoryLineEdit->setText(filename);
 }
 
 
@@ -363,3 +430,4 @@ void XrayDB::on_filePushButton2_clicked()
 
     ui->directoryLineEdit_2->setText(filename);
 }
+

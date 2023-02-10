@@ -355,6 +355,8 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);
+
+    calcImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();      //연산 결과 이미지 저장
 }
 
 void PanoValueAdjustment::set3x3MaskValue(){
@@ -663,6 +665,7 @@ void PanoValueAdjustment::median(int value) {
     Q_UNUSED(value);
 
     memset(medianFilterImg, 0, sizeof(unsigned char) * imageSize);
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
 
     int imageSize = width * height;
     int rowSize = width;
@@ -774,18 +777,18 @@ void PanoValueAdjustment::median(int value) {
     inimg = currentImg.bits();
 
     emit panoImgSend(medianPixmap);
+    emit exitFilterSignal();
 }
 
 
 void PanoValueAdjustment::lowPassFFT(int cutoff) {
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
 
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
+
     FourierProcessing fourier(dentalViewWidth, dentalViewHeight, inimg);
-
     fourier.lowPassGaussian(fftImg, cutoff);
-
     currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8).copy();
-
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
     emit panoImgSend(fourierPixmap);
@@ -793,17 +796,17 @@ void PanoValueAdjustment::lowPassFFT(int cutoff) {
     inimg = currentImg.bits();
 
     fourier.deleteMemory();
+    emit exitFilterSignal();
 }
 
 void PanoValueAdjustment::highPassFFT(int cutoff) {
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
 
+    if(calcImg.isNull() != 1) inimg = calcImg.bits();
+
     FourierProcessing fourier(dentalViewWidth, dentalViewHeight, inimg);
-
     fourier.highFrequencyPass(fftImg, cutoff);
-
     currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8).copy();
-
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
     emit panoImgSend(fourierPixmap);
@@ -811,6 +814,7 @@ void PanoValueAdjustment::highPassFFT(int cutoff) {
     inimg = currentImg.bits();
 
     fourier.deleteMemory();
+    emit exitFilterSignal();
 }
 
 
@@ -820,13 +824,11 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
     memset(inimg, 0, sizeof(unsigned char) * imageSize);
 
     QImage presetImg;
-
     presetImg = prePixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 
     currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8).copy();
 
     inimg = currentImg.bits();
-
 }
 
 void PanoValueAdjustment::setResetImg() {
@@ -834,4 +836,6 @@ void PanoValueAdjustment::setResetImg() {
 
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();
+
+    calcImg = QImage();
 }

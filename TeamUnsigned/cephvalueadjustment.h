@@ -13,7 +13,7 @@ public:
 private:
     QPixmap pixmap, sharpenPixmap;
     QImage defaultImg, image, prevImg;
-    QImage currentImg;
+    QImage currentImg, calcImg;
 
     unsigned char* inimg;
     unsigned char  *mask, *outimg, *gammaImg, *sharpenImg, *copyImg;
@@ -44,6 +44,7 @@ private slots:
 
 signals:
     void cephImgSend(QPixmap&);
+    void exitFilterSignal();
 };
 
 #endif // CEPHVALUEADJUSTMENT_H

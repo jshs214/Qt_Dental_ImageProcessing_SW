@@ -14,11 +14,11 @@ public:
 private:
     QPixmap pixmap, sharpenPixmap;
     QImage defaultImg, image, prevImg;
-    QImage currentImg;
+    QImage currentImg, calcImg;
 
     //const uchar* inimg;
-    unsigned char* inimg;
-    unsigned char  *mask, *outimg, *gammaImg, *sharpenImg, *copyImg;
+    unsigned char* inimg, *mask, *outimg;
+    unsigned char *gammaImg, *sharpenImg, *copyImg;
     unsigned char *fftImg, *medianFilterImg;
 
     int width = 0, height = 0, imageSize = 0;
@@ -45,6 +45,7 @@ private slots:
 
 signals:
     void panoImgSend(QPixmap&);
+    void exitFilterSignal();
 };
 
 #endif // PANOVALUEADJUSTMENT_H
