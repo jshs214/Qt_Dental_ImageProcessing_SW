@@ -61,7 +61,17 @@ void CephValueAdjustment::receiveFile(QPixmap& roadPixmap)
     medianFilterImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
     memset(medianFilterImg, 0, sizeof(unsigned char) * imageSize);
 
-    set3x3MaskValue();  // 영상의 Mask 값 구함
+    blenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(blenImg, 0, sizeof(unsigned char) * imageSize);
+
+    /* 연조직과 골조직의 분리를 위해 감마 조절 후 blending 한 이미지 생성*/
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.6 )) * 255 + 0.f   );
+        *(sharpenImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 1.4 )) * 255 + 0.f   );
+        *(blenImg + i) = *(copyImg + i)*0.5 + *(sharpenImg + i)*0.5;
+    }
+
+    set3x3MaskValue();  // 영상의 Mask 값은 blending 한 이미지로 구현.
 
     for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
         avg += inimg[i];
@@ -108,7 +118,7 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
             }
         }
     }
-    /* 필터값만 조정되는 case */
+    /* unsharp값만 조정되는 case */
     else if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0 && gammaValue ==0){
         switch(sbValue) {
         case -6:
@@ -169,7 +179,6 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
                 *(outimg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
             }
         }
-
 
     }
     /* 두 값 or 세 값, 네 값이 조정되는 case */
@@ -281,7 +290,7 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
                     gaussian(gammaImg, 0.5);
                     break;
                 default:
-                    sharpen(sbValue* 4);
+                    highBoost(gammaImg, sbValue);
                     break;
                 }
                 image = prevImg;
@@ -337,7 +346,7 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
 
     }
 
-    image = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
     emit cephImgSend(pixmap);
 
@@ -351,9 +360,9 @@ void CephValueAdjustment::set3x3MaskValue(){
     double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
                             {1/9.0, 1/9.0, 1/9.0},
                             {1/9.0, 1/9.0, 1/9.0}};
-    //    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
-    //                           {-1, 9, -1},
-    //                           {-1, -1, -1}};
+//        double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
+//                               {-1, 9, -1},
+//                               {-1, -1, -1}};
     int arr[9] = {0};
 
 
@@ -365,25 +374,25 @@ void CephValueAdjustment::set3x3MaskValue(){
         if(widthCnt==0){
             //LeftUpVertex
             if(heightCnt==0){
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
+                arr[0] = arr[1] = arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = blenImg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1+((heightCnt+1)*width) ];
             }
             //LeftDownVertex
             else if(heightCnt==height-1){
-                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+                arr[0] = arr[1] =blenImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blenImg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width)  ];
             }
             else{
-                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
-                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
-                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+                arr[0] = arr[1] = blenImg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = blenImg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[5] = blenImg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = blenImg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1+( (heightCnt+1)*width)  ];
             }
 
             cnt=0;
@@ -394,31 +403,31 @@ void CephValueAdjustment::set3x3MaskValue(){
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i));
         }
 
         else if( widthCnt==(width*1 -1) ){
             //RightUpVertex
             if(heightCnt==0){
-                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+                arr[0] = arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = blenImg[widthCnt + (heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = blenImg[widthCnt+((heightCnt+1)*width) ];
             }
             //RightDownVertex
             else if(heightCnt==height-1){
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = blenImg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = blenImg[widthCnt+(heightCnt*width) ];
             }
             else{
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
-                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
-                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = blenImg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
             }
             cnt=0;
             float sum = 0.0;
@@ -428,16 +437,16 @@ void CephValueAdjustment::set3x3MaskValue(){
                 }
             }
             *(outimg + i ) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
-                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
-                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+                arr[0] = arr[3] = blenImg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blenImg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1 + ((heightCnt+1)*width)  ];
 
                 cnt=0;
                 float sum = 0.0;
@@ -447,17 +456,17 @@ void CephValueAdjustment::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+                *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
             }
         }
         else if( heightCnt ==(height -1) ){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
-                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+                arr[0] = blenImg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = blenImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blenImg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = blenImg[widthCnt+1+(heightCnt*width) ];
                 cnt=0;
                 float sum = 0.0;
                 for(int i = -1; i < 2; i++) {
@@ -466,18 +475,18 @@ void CephValueAdjustment::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+                *(mask + i) =LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
             }
         }
         else{
             float sum = 0.0;
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                    sum += kernel[i+1][j+1]*blenImg[((widthCnt+i*1)+(heightCnt+j)*width) ];
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
         }
     }
 }
@@ -489,7 +498,7 @@ void CephValueAdjustment::highBoost(unsigned char* in, int sbValue){ //unsharp m
     for (int i = 0; i < imageSize; i += 1) {
         *(outimg + i) = LIMIT_UBYTE ( *(in + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
     }
-    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
 void CephValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
@@ -499,7 +508,7 @@ void CephValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
     QImage image;
     image = pixmap.scaled(cephViewWidth, cephViewHeight).toImage();
 
-    image = image.convertToFormat(QImage::Format_Grayscale8);
+    image = image.convertToFormat(QImage::Format_Grayscale8).copy();
 
     unsigned char *histoInimg;
     histoInimg = image.bits();
@@ -538,7 +547,7 @@ void CephValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
         inimg[i] = outimg[i];   //평활화 후 이미지 연산은 평활화 한 이미지로 진행
     }
 
-    image = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
     emit cephImgSend(pixmap);
 }
@@ -598,7 +607,7 @@ void CephValueAdjustment::gaussian(unsigned char* in, float sigma){
             outimg[i + j * width] = sum2 / sum1;
         }
     }
-    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 
     free(pBuf);
     delete[] pMask;
@@ -640,142 +649,8 @@ void CephValueAdjustment::ADFilter(unsigned char * inimg, int iter){    //deNois
         if (i < iter - 1)
             std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
     }
-    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8);
+    prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
-
-void CephValueAdjustment::sharpen(int value)// 세팔로 샤픈 임시 저장
-{
-    float mask = -(value/4);
-    float median = value + 1;
-    float kernel[3][3] = { {0, mask, 0},
-                           {mask, median, mask},
-                           {0, mask, 0}};
-
-    int arr[9] = {0};
-
-    int imageSize = width * height;
-
-    int widthCnt = 0, heightCnt = -1, cnt = 0;
-    for(int i = 0; i < imageSize; i ++){
-        widthCnt = i % width;
-        if(i % width == 0) heightCnt++;
-
-        if(widthCnt==0){
-            //LeftUpVertex
-            if(heightCnt==0){
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
-            }
-            //LeftDownVertex
-            else if(heightCnt==height-1){
-                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
-            }
-            else{
-                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
-                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
-                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
-            }
-
-            cnt=0;
-            float sum = 0.0;
-            for(int i = -1; i < 2; i++) {
-                for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*arr[cnt++];
-                }
-            }
-            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
-        }
-
-        else if( widthCnt==(width*1 -1) ){
-            //RightUpVertex
-            if(heightCnt==0){
-                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
-            }
-            //RightDownVertex
-            else if(heightCnt==height-1){
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
-            }
-            else{
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
-                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
-                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
-            }
-            cnt=0;
-            float sum = 0.0;
-            for(int i = -1; i < 2; i++) {
-                for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*arr[cnt++];
-                }
-            }
-            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
-        }
-        else if(heightCnt==0){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
-                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
-                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
-
-                cnt=0;
-                float sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
-            }
-        }
-        else if( heightCnt ==(height -1) ){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
-                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
-                cnt=0;
-                float sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
-                }
-                *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
-            }
-        }
-
-        else{
-            float sum = 0.0;
-            for(int i = -1; i < 2; i++) {
-                for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
-                }
-            }
-            *(outimg +(widthCnt+heightCnt*width) ) = LIMIT_UBYTE(sum);
-        }
-    }
-}
-
 
 void CephValueAdjustment::median(int value) {
     Q_UNUSED(value);
@@ -933,8 +808,6 @@ void CephValueAdjustment::highPassFFT(int cutoff) {
     emit exitFilterSignal();
 }
 
-
-
 /* preset img 받고 전송 */
 void CephValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
     memset(inimg, 0, sizeof(unsigned char) * imageSize);
@@ -950,7 +823,7 @@ void CephValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
 void CephValueAdjustment::setResetImg() {
     memset(inimg, 0, sizeof(unsigned char) * imageSize);
 
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8).copy();
     inimg = image.bits();
 
     calcImg = QImage();

@@ -17,7 +17,7 @@ private:
 
     unsigned char* inimg;
     unsigned char  *mask, *outimg, *gammaImg, *sharpenImg, *copyImg;
-    unsigned char *fftImg, *medianFilterImg;
+    unsigned char *fftImg, *medianFilterImg, *blenImg;
 
     int width = 0, height = 0, imageSize = 0;
 
@@ -28,7 +28,6 @@ private:
     void set3x3MaskValue();
 
    void highBoost(unsigned char* , int);
-   void sharpen(int);// 세팔로 샤픈 임시 저장
    void gaussian(unsigned char* , float);
    void ADFilter(unsigned char* ,int);
 

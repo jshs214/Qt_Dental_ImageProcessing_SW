@@ -25,7 +25,7 @@ private:
     QPixmap pixmap;
     unsigned char * inimg, *mask, *outimg ;
     unsigned char *copyImg, *copyImg2;
-    unsigned char *fftImg;
+    unsigned char *fftImg, *blenImg;
 
     int width, height, imageSize;
     int cephViewWidth = 800;
@@ -44,6 +44,8 @@ private:
     unsigned char* highBoost(int);
     unsigned char* highBoost(unsigned char*, int);
     unsigned char* ADFilter(unsigned char* ,int);
+
+    unsigned char* lowPassFFT(unsigned char*, int cutoff);
 
 };
 

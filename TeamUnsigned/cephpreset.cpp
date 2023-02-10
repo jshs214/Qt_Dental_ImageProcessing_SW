@@ -2,6 +2,7 @@
 
 #include <QImage>
 #include <QPixmap>
+#include "fourierprocessing.h"
 
 #define LIMIT_UBYTE(n) (n > UCHAR_MAX) ? UCHAR_MAX : (n < 0) ? 0 : n
 #define PI 3.1416926535f
@@ -34,14 +35,22 @@ void CephPreset::receiveFile(QPixmap& roadPixmap){
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-
-    set3x3MaskValue();  // 영상의 Mask 값 구함
+    blenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(blenImg, 0, sizeof(unsigned char) * imageSize);
 
     for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
         avg += inimg[i];
     }
 
     avg = avg/imageSize;
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
+        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+    }
+
+    set3x3MaskValue();
 
     setPreset_1();
     setPreset_2();
@@ -58,11 +67,9 @@ void CephPreset::receievePreset(int preset){
     case 1:
         pixmap = pixmap.fromImage(presetImg1);
         break;
-
     case 2:
         pixmap = pixmap.fromImage(presetImg2);
         break;
-
     case 3:
         pixmap = pixmap.fromImage(presetImg3);
         break;
@@ -72,9 +79,8 @@ void CephPreset::receievePreset(int preset){
     case 5:
         pixmap = pixmap.fromImage(presetImg5);
         break;
-
     case 6:
-        pixmap = pixmap.fromImage(presetImg5);
+        pixmap = pixmap.fromImage(presetImg6);
         break;
     }
 
@@ -85,29 +91,45 @@ void CephPreset::receievePreset(int preset){
 }
 
 void CephPreset::setPreset_1(){
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    int brightValue = 10;
+    int bright = brightValue / 2.5;
+    int contrastValue = 20;
+    float contrast = (100.0+contrastValue/2)/100.0;
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) + bright );
+    }
+
+    memcpy(copyImg2, highBoost(copyImg,3),sizeof(unsigned char) * imageSize);
+
+    memcpy(outimg, ADFilter(copyImg2,2), sizeof(unsigned char) * imageSize);
 
 
     presetImg1 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
 void CephPreset::setPreset_2(){
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
+    int brightValue = 20;
+    int bright = brightValue / 2.5;
+    int contrastValue = -20;
+    float contrast = (100.0+contrastValue/2)/100.0;
 
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) + bright );
+        *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
+    }
+
+    memcpy(outimg, highBoost(copyImg2,3),sizeof(unsigned char) * imageSize);
 
     presetImg2 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
-
 }
 void CephPreset::setPreset_3(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
@@ -118,6 +140,37 @@ void CephPreset::setPreset_3(){
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
 
+    int histo[256], sum_of_h[256];
+    int value,k;
+    float constant;
+
+    for(int i = 0; i < 256; i ++) {
+        histo[i] =0;
+        sum_of_h[i] = 0;
+    }
+
+    for (int i = 0; i < imageSize; i++) {   //histogram 분포
+        value = inimg[i];
+        histo[value] += 1;
+        copyImg[i] = value;
+    }
+
+    //histogram
+    for (int i = 0, sum = 0; i < 256; i++){
+        sum += histo[i];
+        sum_of_h[i] = sum;
+    }
+
+    /* constant = new # of gray levels div by area */
+    constant = (float)(256) / (float)(height * width);
+    for (int i = 0; i < imageSize; i++) {
+        k = copyImg[i];
+        copyImg[i] = LIMIT_UBYTE( sum_of_h[k] * constant ); //copyImg에 평탄화 한 value 저장.
+        *(copyImg2 + i) = LIMIT_UBYTE( (avg + (*(copyImg+i)-avg) * 0.9) - 40 ); //밝기 및 대조 연산
+        //*(copyImg + i) =  LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
+    }
+    memcpy(copyImg, highBoost(copyImg2,4), sizeof(unsigned char)* imageSize);
+    memcpy(outimg, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
 
     presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -130,7 +183,43 @@ void CephPreset::setPreset_4(){
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
 
-    presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+    int histo[256], sum_of_h[256];
+    int value,k;
+    float constant;
+
+    for(int i = 0; i < 256; i ++) {
+        histo[i] =0;
+        sum_of_h[i] = 0;
+    }
+
+    for (int i = 0; i < imageSize; i++) {   //histogram 분포
+        value = inimg[i];
+        histo[value] += 1;
+        copyImg[i] = value;
+    }
+
+    //histogram
+    for (int i = 0, sum = 0; i < 256; i++){
+        sum += histo[i];
+        sum_of_h[i] = sum;
+    }
+
+    /* constant = new # of gray levels div by area */
+    constant = (float)(256) / (float)(height * width);
+    for (int i = 0; i < imageSize; i++) {
+        k = copyImg[i];
+        copyImg[i] = LIMIT_UBYTE( sum_of_h[k] * constant ); //copyImg에 평탄화 한 value 저장.
+        *(copyImg2 + i) = LIMIT_UBYTE( (avg + (*(copyImg+i)-avg) * 0.9) - 40 ); //밝기 및 대조 연산
+    }
+    memcpy(copyImg, highBoost(copyImg2,4), sizeof(unsigned char)* imageSize);
+    memcpy(copyImg2, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
+
+    for(int i =0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 0.95) + 12 ); //밝기 및 대조 연산
+        *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
+    }
+
+    presetImg4 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
 }
 void CephPreset::setPreset_5(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
@@ -140,6 +229,11 @@ void CephPreset::setPreset_5(){
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
+        *(outimg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+    }
 
     presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -150,6 +244,12 @@ void CephPreset::setPreset_6(){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 1.5 )) * 255 + 0.f   );
+        *(outimg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+    }
 
     presetImg6 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -215,7 +315,6 @@ unsigned char* CephPreset::ADFilter(unsigned char* inimg ,int iter){
 
     return outimg;
 }
-
 void CephPreset::set3x3MaskValue(){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(mask, 0, sizeof(unsigned char) * imageSize);
@@ -237,25 +336,25 @@ void CephPreset::set3x3MaskValue(){
         if(widthCnt==0){
             //LeftUpVertex
             if(heightCnt==0){
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
+                arr[0] = arr[1] = arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = blenImg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1+((heightCnt+1)*width) ];
             }
             //LeftDownVertex
             else if(heightCnt==height-1){
-                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+                arr[0] = arr[1] =blenImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blenImg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width)  ];
             }
             else{
-                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
-                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
-                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+                arr[0] = arr[1] = blenImg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = blenImg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[5] = blenImg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = blenImg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1+( (heightCnt+1)*width)  ];
             }
 
             cnt=0;
@@ -266,31 +365,31 @@ void CephPreset::set3x3MaskValue(){
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i));
         }
 
         else if( widthCnt==(width*1 -1) ){
             //RightUpVertex
             if(heightCnt==0){
-                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+                arr[0] = arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = blenImg[widthCnt + (heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = blenImg[widthCnt+((heightCnt+1)*width) ];
             }
             //RightDownVertex
             else if(heightCnt==height-1){
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = blenImg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = blenImg[widthCnt+(heightCnt*width) ];
             }
             else{
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
-                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
-                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = blenImg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
             }
             cnt=0;
             float sum = 0.0;
@@ -300,16 +399,16 @@ void CephPreset::set3x3MaskValue(){
                 }
             }
             *(outimg + i ) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
-                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
-                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+                arr[0] = arr[3] = blenImg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blenImg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = blenImg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = blenImg[widthCnt+1 + ((heightCnt+1)*width)  ];
 
                 cnt=0;
                 float sum = 0.0;
@@ -319,17 +418,17 @@ void CephPreset::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+                *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
             }
         }
         else if( heightCnt ==(height -1) ){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
-                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+                arr[0] = blenImg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = blenImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blenImg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = blenImg[widthCnt+1+(heightCnt*width) ];
                 cnt=0;
                 float sum = 0.0;
                 for(int i = -1; i < 2; i++) {
@@ -338,18 +437,37 @@ void CephPreset::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+                *(mask + i) =LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
             }
         }
         else{
             float sum = 0.0;
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                    sum += kernel[i+1][j+1]*blenImg[((widthCnt+i*1)+(heightCnt+j)*width) ];
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
         }
     }
+
+}
+unsigned char* CephPreset::lowPassFFT(unsigned char* in, int cutoff){
+    memset(fftImg, 0, sizeof(unsigned char) * cephViewWidth*cephViewHeight);
+
+    QImage currentImg;
+
+    FourierProcessing fourier(cephViewWidth, cephViewHeight, in);
+
+    fourier.lowPassGaussian(fftImg, cutoff);
+
+    currentImg = QImage(fftImg, cephViewWidth, cephViewHeight, QImage::Format_Grayscale8);
+
+    QPixmap fourierPixmap;
+    fourierPixmap = pixmap.fromImage(currentImg);
+
+    fourier.deleteMemory();
+
+    return currentImg.bits();
 }

@@ -458,7 +458,6 @@ void CephaloForm::on_resetButton_clicked()
     QPixmap pixmap;
     pixmap = pixmap.fromImage(defaultImg.convertToFormat(QImage::Format_Grayscale8));
 
-    qDebug()<<"Reset : "<<__FUNCTION__ << __LINE__ << pixmap;
     emit sendResetCeph(pixmap);
     emit sendSetReset();
 }
