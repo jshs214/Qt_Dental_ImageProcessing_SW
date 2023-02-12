@@ -41,7 +41,6 @@ private:
 
     void set3x3MaskValue();
 
-    unsigned char* highBoost(int);
     unsigned char* highBoost(unsigned char*, int);
     unsigned char* ADFilter(unsigned char* ,int);
 

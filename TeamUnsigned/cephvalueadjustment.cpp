@@ -103,6 +103,7 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
             for(int i = 0; i < imageSize; i ++){
                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
+            qDebug() << __LINE__<< contrast;
         }
         else if(contrastValue == 0) {
             contrast = 1;
@@ -116,6 +117,8 @@ void CephValueAdjustment::changeCephValue(int brightValue, int contrastValue,int
             for(int i = 0; i < imageSize; i ++){
                 *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
             }
+
+            qDebug() << __LINE__<< contrast;
         }
     }
     /* unsharp값만 조정되는 case */

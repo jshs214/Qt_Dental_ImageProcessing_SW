@@ -45,8 +45,8 @@ void CephPreset::receiveFile(QPixmap& roadPixmap){
     avg = avg/imageSize;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
-        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.5 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 1.6 )) * 255 + 0.f   );
         *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
     }
 
@@ -91,47 +91,92 @@ void CephPreset::receievePreset(int preset){
 }
 
 void CephPreset::setPreset_1(){
+
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();       //inimg 초기화
+
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int brightValue = 10;
-    int bright = brightValue / 2.5;
-    int contrastValue = 20;
-    float contrast = (100.0+contrastValue/2)/100.0;
-
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) + bright );
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.5 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
+        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+        *(copyImg + i) = LIMIT_UBYTE( *(blenImg + i) - 12);
     }
+    memcpy(copyImg2, highBoost(copyImg, 2), sizeof(unsigned char) * imageSize);
 
-    memcpy(copyImg2, highBoost(copyImg,3),sizeof(unsigned char) * imageSize);
-
-    memcpy(outimg, ADFilter(copyImg2,2), sizeof(unsigned char) * imageSize);
-
-
-    presetImg1 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+    presetImg1 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
 }
 
 void CephPreset::setPreset_2(){
+
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();       //inimg 초기화
+
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int brightValue = 20;
-    int bright = brightValue / 2.5;
-    int contrastValue = -20;
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
+        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.5 )) * 255 + 0.f   );
+        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+        *(copyImg + i) = LIMIT_UBYTE( *(blenImg + i) - 12);
+    }
+    memcpy(copyImg2, highBoost(copyImg, 2), sizeof(unsigned char) * imageSize);
+
+    presetImg2 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
+
+}
+void CephPreset::setPreset_3(){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    int contrastValue = -10;
     float contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) + bright );
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) - 12 );
         *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
 
-    memcpy(outimg, highBoost(copyImg2,3),sizeof(unsigned char) * imageSize);
+    memcpy(copyImg, lowPassFFT(copyImg2, 200), sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg,4),sizeof(unsigned char) * imageSize);
+    memcpy(copyImg, ADFilter(copyImg2, 2), sizeof(unsigned char) * imageSize);
 
-    presetImg2 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg2 + i) = LIMIT_UBYTE( (avg + (*(copyImg+i)-avg) * 0.88));
+        *(copyImg + i) =  LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / 0.8 )) * 255 + 0.f   );
+    }
+    memcpy(outimg, ADFilter(copyImg, 2), sizeof(unsigned char) * imageSize);
+
+
+    presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
-void CephPreset::setPreset_3(){
+void CephPreset::setPreset_4(){
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    int contrastValue = -10;
+    float contrast = (100.0+contrastValue/2)/100.0;
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) - 12 );
+        *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
+    }
+
+    memcpy(copyImg, lowPassFFT(copyImg2, 200), sizeof(unsigned char) * imageSize);
+    memcpy(copyImg2, highBoost(copyImg,4),sizeof(unsigned char) * imageSize);
+    memcpy(outimg, ADFilter(copyImg2, 4), sizeof(unsigned char) * imageSize);
+
+    presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+
+}
+void CephPreset::setPreset_5(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
 
@@ -172,9 +217,10 @@ void CephPreset::setPreset_3(){
     memcpy(copyImg, highBoost(copyImg2,4), sizeof(unsigned char)* imageSize);
     memcpy(outimg, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
 
-    presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+    presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+
 }
-void CephPreset::setPreset_4(){
+void CephPreset::setPreset_6(){
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
 
@@ -215,56 +261,13 @@ void CephPreset::setPreset_4(){
     memcpy(copyImg2, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
 
     for(int i =0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 0.95) + 12 ); //밝기 및 대조 연산
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 1.2) + 12 ); //밝기 및 대조 연산
         *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
 
-    presetImg4 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
-}
-void CephPreset::setPreset_5(){
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
-        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
-        *(outimg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+    presetImg6 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
     }
 
-    presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
-}
-void CephPreset::setPreset_6(){
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
-        *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 1.5 )) * 255 + 0.f   );
-        *(outimg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
-    }
-
-    presetImg6 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
-}
-
-unsigned char* CephPreset::highBoost(int sbValue){
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-
-    int sharpen = sbValue * 2.5;
-
-    for (int i = 0; i < imageSize; i += 1) {
-        *(outimg + i) = LIMIT_UBYTE ( *(inimg + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
-    }
-
-    return outimg;
-}
 unsigned char* CephPreset::highBoost(unsigned char* in, int sbValue){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
