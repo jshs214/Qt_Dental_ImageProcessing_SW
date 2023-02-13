@@ -25,7 +25,6 @@ ListWidget::ListWidget(int id, QString name, QString birthdate, QString director
     image = QPixmap(path);
     ui->imageLabel->setPixmap(image);
 
-
 }
 ListWidget::~ListWidget()
 {
@@ -133,19 +132,19 @@ void ListWidget::on_loadPushButton_clicked()
     cephFile = new QFile(directory);
     panoFile = new QFile(directory2);
 
-    w = new MainWindow();
+    unsignedViewer = new MainWindow();
     connect(this, SIGNAL(setLoadMainWindow(QString, QString, QString) ),
-            w, SLOT(setReceiveMainWindow(QString, QString, QString) ));
-    w->show();
+            unsignedViewer, SLOT(setReceiveMainWindow(QString, QString, QString) ));
+    unsignedViewer->show();
 
     emit setLoadMainWindow(type, cephFile->fileName(), panoFile->fileName());
 
-    connect(w, SIGNAL(closeMainWindow( ) ),
+    connect(unsignedViewer, SIGNAL(closeMainWindow( ) ),
             this, SLOT(delMainWindow() ));
     flag = true;
 }
 void ListWidget::delMainWindow(){
     flag = false;
-    delete w;
+    delete unsignedViewer;
 }
 

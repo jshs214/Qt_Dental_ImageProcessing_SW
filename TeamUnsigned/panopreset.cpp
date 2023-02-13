@@ -60,32 +60,26 @@ void PanoPreset::receievePreset(int preset){
 
     switch(preset) {
     case 1:
-        //setPreset_1();
         pixmap = pixmap.fromImage(presetImg1);
         break;
 
     case 2:
-        //setPreset_2();
         pixmap = pixmap.fromImage(presetImg2);
         break;
 
     case 3:
-        //setPreset_3();
         pixmap = pixmap.fromImage(presetImg3);
         break;
 
     case 4:
-        //setPreset_4();
         pixmap = pixmap.fromImage(presetImg4);
         break;
 
     case 5:
-        //setPreset_5();
         pixmap = pixmap.fromImage(presetImg5);
         break;
 
     case 6:
-        //setPreset_6();
         pixmap = pixmap.fromImage(presetImg6);
         break;
     }
@@ -116,11 +110,7 @@ void PanoPreset::setPreset_1(){
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
-
-    memcpy(copyImg2, copyImg, sizeof(unsigned char)*imageSize);
-
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memcpy(copyImg, highBoost(copyImg2, sbValue), sizeof(unsigned char)*imageSize);
+    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     int brightValue = 20;
     int bright = brightValue / 2.5;
@@ -128,7 +118,7 @@ void PanoPreset::setPreset_1(){
     contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg+i)-avg) * contrast) + bright );
+        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) + bright );
     }
 
 
@@ -219,7 +209,6 @@ void PanoPreset::setPreset_4(){
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
-
     memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
@@ -312,25 +301,12 @@ void PanoPreset::setPreset_6(){
     }
 
     memcpy(copyImg2, lowPassFFT(copyImg, 150), sizeof(unsigned char)*imageSize);
-
     memcpy(copyImg, highBoost(copyImg2, 6), sizeof(unsigned char)*imageSize);
-
     memcpy(outimg, ADFilter(copyImg, 18), sizeof(unsigned char)*imageSize);
 
     presetImg6 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
-unsigned char* PanoPreset::highBoost(int sbValue){
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-
-    int sharpen = sbValue * 2.5;
-
-    for (int i = 0; i < imageSize; i += 1) {
-        *(outimg + i) = LIMIT_UBYTE ( *(inimg + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
-    }
-
-    return outimg;
-}
 unsigned char* PanoPreset::highBoost(unsigned char* in, int sbValue){
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
@@ -534,25 +510,6 @@ unsigned char* PanoPreset::lowPassFFT(unsigned char* in, int cutoff){
 
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
-
-    fourier.deleteMemory();
-
-    return currentImg.bits();
-}
-unsigned char* PanoPreset::highPassFFT(unsigned char* in, int cutoff){
-    memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
-
-    QImage currentImg;
-
-    FourierProcessing fourier(dentalViewWidth, dentalViewHeight, in);
-
-    fourier.highFrequencyPass(fftImg, cutoff);
-
-    currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8);
-
-    QPixmap fourierPixmap;
-    fourierPixmap = pixmap.fromImage(currentImg);
-
 
     fourier.deleteMemory();
 

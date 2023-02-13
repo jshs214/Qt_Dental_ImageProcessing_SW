@@ -11,7 +11,7 @@ public:
     explicit CephValueAdjustment(QObject *parent = nullptr);
 
 private:
-    QPixmap pixmap, sharpenPixmap;
+    QPixmap pixmap;
     QImage defaultImg, image, prevImg;
     QImage currentImg, calcImg;
 

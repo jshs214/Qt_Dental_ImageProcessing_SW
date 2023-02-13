@@ -21,7 +21,8 @@ signals:
 
 private:
     QImage defaultImg, image;
-    QImage presetImg1,presetImg2,presetImg3,presetImg4,presetImg5,presetImg6;
+    QImage presetImg1, presetImg2, presetImg3
+          , presetImg4, presetImg5, presetImg6;
 
     QPixmap pixmap;
     unsigned char * inimg, *mask, *outimg;
@@ -43,12 +44,10 @@ private:
 
     void set3x3MaskValue();
 
-    unsigned char* highBoost(int);
     unsigned char* highBoost(unsigned char*, int);
     unsigned char* ADFilter(unsigned char* ,int);
 
     unsigned char* lowPassFFT(unsigned char*, int cutoff);
-    unsigned char* highPassFFT(unsigned char*, int cutoff);
 };
 
 #endif // PANOPRESET_H

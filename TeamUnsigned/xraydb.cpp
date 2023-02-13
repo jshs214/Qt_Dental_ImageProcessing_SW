@@ -102,10 +102,8 @@ void XrayDB::loadData()
 
         QListWidgetItem *item = new QListWidgetItem;
         ui->personList->addItem(item);
-        item->setSizeHint(QSize(400,130));
+        item->setSizeHint(QSize(380,150));
         ui->personList->setItemWidget(item, L);
-
-        //clientList.insert(id, clientModel->index(i, 0));
 
     }
 }
@@ -168,7 +166,7 @@ void XrayDB::on_addPushButton_clicked()
             )
     {
         QListWidgetItem* item= new QListWidgetItem;
-        item->setSizeHint(QSize(380,130));
+        item->setSizeHint(QSize(380,150));
 
         ListWidget* L ;  L = new ListWidget(id, name, birthdate, directory, directory2, type, gender, path);
 
@@ -244,7 +242,7 @@ void XrayDB::on_searchPushButton_clicked()
 
         QListWidgetItem* item= new QListWidgetItem;
 
-        item->setSizeHint(QSize(373,130));
+        item->setSizeHint(QSize(380,150));
         ui->searchWidget->addItem(item);
         ui->searchWidget->setItemWidget(item, li);
         ui->searchWidget->addItem(item);
@@ -303,7 +301,7 @@ void XrayDB::on_modifyPushButton_clicked()
         if (name.length())
         {
 
-            item->setSizeHint(QSize(400,130));
+            item->setSizeHint(QSize(380,150));
             li->setName(name);
             li->setBirthdate(birthdate);
             li->setDirectory(directory);

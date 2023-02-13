@@ -11,6 +11,7 @@ FilterButtonForm::FilterButtonForm(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::FilterButtonForm)
 {
+
     ui->setupUi(this);
     ui->valueLineEdit->setEnabled(false);
     validator = new QIntValidator(1, 256, this);
@@ -18,6 +19,8 @@ FilterButtonForm::FilterButtonForm(QWidget *parent) :
 
     connect(this, SIGNAL(destroyed()),
             this, SLOT(deleteLater()));
+    this->setWindowTitle("Filter");
+
 }
 
 FilterButtonForm::~FilterButtonForm()

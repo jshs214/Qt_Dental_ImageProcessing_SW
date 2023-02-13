@@ -35,8 +35,8 @@ void CephPreset::receiveFile(QPixmap& roadPixmap){
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    blenImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
-    memset(blenImg, 0, sizeof(unsigned char) * imageSize);
+    blendImg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memset(blendImg, 0, sizeof(unsigned char) * imageSize);
 
     for(int i = 0; i < imageSize; i ++){ //영상의 평균 value를 저장하기 위함
         avg += inimg[i];
@@ -47,7 +47,7 @@ void CephPreset::receiveFile(QPixmap& roadPixmap){
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.5 )) * 255 + 0.f   );
         *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 1.6 )) * 255 + 0.f   );
-        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+        *(blendImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
     }
 
     set3x3MaskValue();
@@ -102,8 +102,8 @@ void CephPreset::setPreset_1(){
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.5 )) * 255 + 0.f   );
         *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.0 )) * 255 + 0.f   );
-        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
-        *(copyImg + i) = LIMIT_UBYTE( *(blenImg + i) - 12);
+        *(blendImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+        *(copyImg + i) = LIMIT_UBYTE( *(blendImg + i) - 12);
     }
     memcpy(copyImg2, highBoost(copyImg, 2), sizeof(unsigned char) * imageSize);
 
@@ -122,8 +122,8 @@ void CephPreset::setPreset_2(){
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 0.7 )) * 255 + 0.f   );
         *(copyImg2 + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / 2.5 )) * 255 + 0.f   );
-        *(blenImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
-        *(copyImg + i) = LIMIT_UBYTE( *(blenImg + i) - 12);
+        *(blendImg + i) = LIMIT_UBYTE ( *(copyImg + i)*0.5 + *(copyImg2 + i)*0.5 );
+        *(copyImg + i) = LIMIT_UBYTE( *(blendImg + i) - 12);
     }
     memcpy(copyImg2, highBoost(copyImg, 2), sizeof(unsigned char) * imageSize);
 
@@ -139,7 +139,7 @@ void CephPreset::setPreset_3(){
     float contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) - 12 );
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blendImg+i)-avg) * contrast) - 12 );
         *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
 
@@ -165,7 +165,7 @@ void CephPreset::setPreset_4(){
     float contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blenImg+i)-avg) * contrast) - 12 );
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(blendImg+i)-avg) * contrast) - 12 );
         *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
 
@@ -325,11 +325,8 @@ void CephPreset::set3x3MaskValue(){
     double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
                             {1/9.0, 1/9.0, 1/9.0},
                             {1/9.0, 1/9.0, 1/9.0}};
-    //    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
-    //                           {-1, 9, -1},
-    //                           {-1, -1, -1}};
-    int arr[9] = {0};
 
+    int arr[9] = {0};
 
     int widthCnt = 0, heightCnt = -1, cnt = 0;
     for(int i = 0; i < imageSize; i ++){
@@ -339,25 +336,25 @@ void CephPreset::set3x3MaskValue(){
         if(widthCnt==0){
             //LeftUpVertex
             if(heightCnt==0){
-                arr[0] = arr[1] = arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width) ];
-                arr[6] = arr[7] = blenImg[widthCnt+ ((heightCnt+1)*width)  ];
-                arr[8] = blenImg[widthCnt+1+((heightCnt+1)*width) ];
+                arr[0] = arr[1] = arr[3] = arr[4] = blendImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blendImg[widthCnt+1 + (heightCnt*width) ];
+                arr[6] = arr[7] = blendImg[widthCnt+ ((heightCnt+1)*width)  ];
+                arr[8] = blendImg[widthCnt+1+((heightCnt+1)*width) ];
             }
             //LeftDownVertex
             else if(heightCnt==height-1){
-                arr[0] = arr[1] =blenImg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = blenImg[widthCnt+1 + ((heightCnt-1)*width) ];
-                arr[3] = arr[6] = arr[7] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
-                arr[8] = arr[5] = blenImg[widthCnt+1 + (heightCnt*width)  ];
+                arr[0] = arr[1] =blendImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blendImg[widthCnt+1 + ((heightCnt-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = blendImg[widthCnt+(heightCnt*width)  ];
+                arr[8] = arr[5] = blendImg[widthCnt+1 + (heightCnt*width)  ];
             }
             else{
-                arr[0] = arr[1] = blenImg[widthCnt+( (heightCnt-1)*width)  ];
-                arr[2] = blenImg[widthCnt+1+( (heightCnt-1)*width)  ];
-                arr[3] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
-                arr[5] = blenImg[widthCnt+1+(heightCnt*width) ];
-                arr[6] = arr[7] = blenImg[widthCnt+ ( (heightCnt+1)*width)  ];
-                arr[8] = blenImg[widthCnt+1+( (heightCnt+1)*width)  ];
+                arr[0] = arr[1] = blendImg[widthCnt+( (heightCnt-1)*width)  ];
+                arr[2] = blendImg[widthCnt+1+( (heightCnt-1)*width)  ];
+                arr[3] = arr[4] = blendImg[widthCnt+(heightCnt*width) ];
+                arr[5] = blendImg[widthCnt+1+(heightCnt*width) ];
+                arr[6] = arr[7] = blendImg[widthCnt+ ( (heightCnt+1)*width)  ];
+                arr[8] = blendImg[widthCnt+1+( (heightCnt+1)*width)  ];
             }
 
             cnt=0;
@@ -368,31 +365,31 @@ void CephPreset::set3x3MaskValue(){
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i));
+            *(mask + i) = LIMIT_UBYTE( *(blendImg + i) - *(outimg + i));
         }
 
         else if( widthCnt==(width*1 -1) ){
             //RightUpVertex
             if(heightCnt==0){
-                arr[0] = arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
-                arr[1] = arr[2] = arr[5] = arr[4] = blenImg[widthCnt + (heightCnt*width)  ];
-                arr[6] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[7] = arr[8] = blenImg[widthCnt+((heightCnt+1)*width) ];
+                arr[0] = arr[3] = blendImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = blendImg[widthCnt + (heightCnt*width)  ];
+                arr[6] = blendImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[7] = arr[8] = blendImg[widthCnt+((heightCnt+1)*width) ];
             }
             //RightDownVertex
             else if(heightCnt==height-1){
-                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[1] = arr[2] = blenImg[widthCnt-1 +((heightCnt-1)*width)  ];
-                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[5] = arr[7] = arr[8] = blenImg[widthCnt+(heightCnt*width) ];
+                arr[0] = blendImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[1] = arr[2] = blendImg[widthCnt-1 +((heightCnt-1)*width)  ];
+                arr[3] = arr[6] = blendImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = blendImg[widthCnt+(heightCnt*width) ];
             }
             else{
-                arr[0] = blenImg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[2] = arr[1] = blenImg[widthCnt + ((heightCnt-1)*width)  ];
-                arr[3] = blenImg[widthCnt-1 + (heightCnt*width)  ];
-                arr[5] = arr[4] = blenImg[widthCnt+(heightCnt*width)  ];
-                arr[6] = blenImg[widthCnt-1 + ((heightCnt+1)*width)  ];
-                arr[8] = arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
+                arr[0] = blendImg[widthCnt-1 + ((heightCnt-1)*width)  ];
+                arr[2] = arr[1] = blendImg[widthCnt + ((heightCnt-1)*width)  ];
+                arr[3] = blendImg[widthCnt-1 + (heightCnt*width)  ];
+                arr[5] = arr[4] = blendImg[widthCnt+(heightCnt*width)  ];
+                arr[6] = blendImg[widthCnt-1 + ((heightCnt+1)*width)  ];
+                arr[8] = arr[7] = blendImg[widthCnt+((heightCnt+1)*width)  ];
             }
             cnt=0;
             float sum = 0.0;
@@ -402,16 +399,16 @@ void CephPreset::set3x3MaskValue(){
                 }
             }
             *(outimg + i ) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blendImg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = arr[3] = blenImg[widthCnt-1+(heightCnt*width)  ];
-                arr[1] = arr[4] = blenImg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = blenImg[widthCnt+1+(heightCnt*width)  ];
-                arr[6] = blenImg[widthCnt-1+((heightCnt+1)*width)  ];
-                arr[7] = blenImg[widthCnt+((heightCnt+1)*width)  ];
-                arr[8] = blenImg[widthCnt+1 + ((heightCnt+1)*width)  ];
+                arr[0] = arr[3] = blendImg[widthCnt-1+(heightCnt*width)  ];
+                arr[1] = arr[4] = blendImg[widthCnt+(heightCnt*width) ];
+                arr[2] = arr[5] = blendImg[widthCnt+1+(heightCnt*width)  ];
+                arr[6] = blendImg[widthCnt-1+((heightCnt+1)*width)  ];
+                arr[7] = blendImg[widthCnt+((heightCnt+1)*width)  ];
+                arr[8] = blendImg[widthCnt+1 + ((heightCnt+1)*width)  ];
 
                 cnt=0;
                 float sum = 0.0;
@@ -421,17 +418,17 @@ void CephPreset::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
+                *(mask + i) = LIMIT_UBYTE( *(blendImg + i) - *(outimg + i) );
             }
         }
         else if( heightCnt ==(height -1) ){
             if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = blenImg[widthCnt-1+((heightCnt-1)*width) ];
-                arr[1] = blenImg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = blenImg[widthCnt+1+((heightCnt-1)*width) ];
-                arr[3] = arr[6] = blenImg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[7] = blenImg[widthCnt+(heightCnt*width) ];
-                arr[5] = arr[8] = blenImg[widthCnt+1+(heightCnt*width) ];
+                arr[0] = blendImg[widthCnt-1+((heightCnt-1)*width) ];
+                arr[1] = blendImg[widthCnt+((heightCnt-1)*width) ];
+                arr[2] = blendImg[widthCnt+1+((heightCnt-1)*width) ];
+                arr[3] = arr[6] = blendImg[widthCnt-1+(heightCnt*width) ];
+                arr[4] = arr[7] = blendImg[widthCnt+(heightCnt*width) ];
+                arr[5] = arr[8] = blendImg[widthCnt+1+(heightCnt*width) ];
                 cnt=0;
                 float sum = 0.0;
                 for(int i = -1; i < 2; i++) {
@@ -440,18 +437,18 @@ void CephPreset::set3x3MaskValue(){
                     }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
-                *(mask + i) =LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
+                *(mask + i) =LIMIT_UBYTE( *(blendImg + i) - *(outimg + i) );
             }
         }
         else{
             float sum = 0.0;
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*blenImg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                    sum += kernel[i+1][j+1]*blendImg[((widthCnt+i*1)+(heightCnt+j)*width) ];
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
-            *(mask + i) = LIMIT_UBYTE( *(blenImg + i) - *(outimg + i) );
+            *(mask + i) = LIMIT_UBYTE( *(blendImg + i) - *(outimg + i) );
         }
     }
 

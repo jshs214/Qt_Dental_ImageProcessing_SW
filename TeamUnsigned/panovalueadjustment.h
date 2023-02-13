@@ -12,11 +12,10 @@ public:
     explicit PanoValueAdjustment(QObject *parent = nullptr);
 
 private:
-    QPixmap pixmap, sharpenPixmap;
+    QPixmap pixmap;
     QImage defaultImg, image, prevImg;
     QImage currentImg, calcImg;
 
-    //const uchar* inimg;
     unsigned char* inimg, *mask, *outimg;
     unsigned char *gammaImg, *sharpenImg, *copyImg;
     unsigned char *fftImg, *medianFilterImg;

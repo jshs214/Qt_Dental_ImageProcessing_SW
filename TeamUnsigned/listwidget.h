@@ -13,7 +13,6 @@ class CephImageView;
 class CephaloForm;
 
 }
-
 class ListWidget : public QWidget
 {
     Q_OBJECT
@@ -60,7 +59,7 @@ private:
 
     Ui::ListWidget *ui;
 
-    MainWindow* w;
+    MainWindow* unsignedViewer;
 
     QImage defaultImg;
     QPixmap defaultPixmap, prevPixmap;

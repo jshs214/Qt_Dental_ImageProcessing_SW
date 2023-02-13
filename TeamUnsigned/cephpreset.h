@@ -25,7 +25,7 @@ private:
     QPixmap pixmap;
     unsigned char * inimg, *mask, *outimg ;
     unsigned char *copyImg, *copyImg2;
-    unsigned char *fftImg, *blenImg;
+    unsigned char *fftImg, *blendImg;
 
     int width, height, imageSize;
     int cephViewWidth = 800;

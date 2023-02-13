@@ -22,7 +22,7 @@ private:
     QImage image;
 
     const uchar* inimg;
-    unsigned char  *mask, *outimg, *sharpenImg;
+
     int histo[256];
     int width = 0, height = 0, imageSize = 0;
     int min = 999, max = 0;

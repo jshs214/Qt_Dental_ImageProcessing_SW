@@ -28,6 +28,7 @@ PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
 
 void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
 {
+
     pixmap = roadPixmap;
 
     //defaultImg 저장.
@@ -90,76 +91,40 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
         }
     }
     /* 대비값만 조정되는 case */
-    else if(brightValue == 0 && sbValue == 0 && deNoiseValue == 0 && gammaValue == 0){
-        if (contrastValue > 0) {
+    if(brightValue == 0 && sbValue == 0 && deNoiseValue == 0 && gammaValue == 0){
+        if (contrastValue > 0)
             contrast = (100.0+contrastValue/2)/100.0;
-            for(int i = 0; i < imageSize; i ++){
-                *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
-            }
-        }
-        else if(contrastValue == 0) {
+        else if(contrastValue == 0)
             contrast = 1;
-            for(int i = 0; i < imageSize; i ++){
-                *(outimg + i) = LIMIT_UBYTE( (avg + (*(inimg+i)-avg) * contrast)  + brightValue );
-            }
-        }
         else {
             contrastValue *= 0.5;
             contrast = (100.0+contrastValue/2)/100.0;
-            for(int i = 0; i < imageSize; i ++){
-                *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
-            }
+        }
+        for(int i = 0; i < imageSize; i ++){
+            *(outimg + i) = LIMIT_UBYTE( avg + (*(inimg+i)-avg) *contrast );
         }
     }
-    /* 필터값만 조정되는 case */
-    else if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0 && gammaValue ==0){
-        switch(sbValue) {
-        case -6:
-            gaussian(inimg, 3.0);
-            break;
-        case -5:
-            gaussian(inimg, 2.5);
-            break;
-        case -4:
-            gaussian(inimg, 2.0);
-            break;
-        case -3:
-            gaussian(inimg,1.5);
-            break;
-        case -2:
-            gaussian(inimg,1.0);
-            break;
-        case -1:
-            gaussian(inimg, 0.5);
-            break;
-        case 0:
-            prevImg = defaultImg;
-            break;
-        default:
+    /* unsharp값만 조정되는 case */
+    if(brightValue == 0 && contrastValue == 0 && deNoiseValue == 0 && gammaValue ==0){
+        if(sbValue < 0)
+            gaussian(inimg, (float)sbValue*(-0.5));
+        else if(sbValue > 0)
             highBoost(inimg, sbValue);
-            break;
-        }
+        else  prevImg = defaultImg;
+
         image = prevImg;
     }
 
     /* DeNoising 만 조정되는 case */
-    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && gammaValue ==0) {
+    if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && gammaValue ==0) {
         int adfValue = 2 * deNoiseValue;
 
-        switch(deNoiseValue) {
-        case 0:
-            prevImg = defaultImg;
-            break;
-        case 1:
-            ADFilter(inimg, adfValue);
-            break;
-        default:
-            ADFilter(inimg, adfValue);
-            break;
-        }
+        ADFilter(inimg, adfValue);
+
         image = prevImg;
     }
-    else if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && deNoiseValue ==0){
+    /* Gamma 조정 case */
+    if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && deNoiseValue ==0){
         if(gammaValue ==0){
             for(int i = 0; i < imageSize; i ++){
                 *(outimg + i) = *(inimg + i);
@@ -172,8 +137,6 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
                 *(outimg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
             }
         }
-
-
     }
     /* 두 값 이상 조정되는 case */
     else{
@@ -186,77 +149,45 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
             }
             else{   //gammaValue가 0이 아닌 경우
                 gamma = 1.0 + gammaValue*0.02;
-
                 for(int i = 0; i < imageSize; i ++){
                     *(gammaImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
                 }
             }
             if(sbValue != 0){   // unsharp이 조정된 경우
-                switch(sbValue) {
-                case -6:
-                    gaussian(gammaImg, 3.0);
-                    break;
-                case -5:
-                    gaussian(gammaImg, 2.5);
-                    break;
-                case -4:
-                    gaussian(gammaImg, 2.0);
-                    break;
-                case -3:
-                    gaussian(gammaImg, 1.5);
-                    break;
-                case -2:
-                    gaussian(gammaImg, 1.0);
-                    break;
-                case -1:
-                    gaussian(gammaImg, 0.5);
-                    break;
-                default:
+                if(sbValue < 0)
+                    gaussian(gammaImg, (float)sbValue*(-0.5));
+                else if(sbValue > 0)
                     highBoost(gammaImg, sbValue);
-                    break;
-                }
+
                 image = prevImg;
                 sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
-                if (contrastValue > 0) {
+                if (contrastValue > 0)
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
-                    }
-                }
-                else if(contrastValue == 0) {
+                else if(contrastValue == 0)
                     contrast = 1;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
-                    }
-                }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value);
-                    }
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
                 }
             }
             else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
-                if (contrastValue > 0) {
+                if (contrastValue > 0){
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value );
-                    }
                 }
                 else if(contrastValue == 0) {
                     contrast = 1;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( (avg + (*(gammaImg+i)- avg) * contrast)  + value );
-                    }
                 }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value);
-                    }
                 }
+                for(int i = 0; i < imageSize; i ++){
+                    *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value );
+                }
+
             }
         }
         else { //deNoising 이 조정 된 경우
@@ -276,73 +207,39 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
             }
 
             if(sbValue != 0){   // unsharp이 조정된 경우
-                switch(sbValue) {
-                case -6:
-                    gaussian(gammaImg, 3.0);
-                    break;
-                case -5:
-                    gaussian(gammaImg, 2.5);
-                    break;
-                case -4:
-                    gaussian(gammaImg, 2.0);
-                    break;
-                case -3:
-                    gaussian(gammaImg, 1.5);
-                    break;
-                case -2:
-                    gaussian(gammaImg, 1.0);
-                    break;
-                case -1:
-                    gaussian(gammaImg, 0.5);
-                    break;
-                default:
+                if(sbValue < 0)
+                    gaussian(gammaImg, (float)sbValue*(-0.5));
+                else if(sbValue > 0)
                     highBoost(gammaImg, sbValue);
-                    break;
-                }
+
                 image = prevImg;
                 sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
-                if (contrastValue > 0) {
+                if (contrastValue > 0)
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
-                    }
-                }
-                else if(contrastValue == 0) {
+                else if(contrastValue == 0)
                     contrast = 1;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
-                    }
-                }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value);
-                    }
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
                 }
 
                 ADFilter(copyImg, adfValue);
                 image = prevImg;
             }
             else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
-                if (contrastValue > 0) {
+                if (contrastValue > 0)
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)-avg) *contrast  + value );
-                    }
-                }
-                else if(contrastValue == 0) {
+                else if(contrastValue == 0)
                     contrast = 1;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(gammaImg+i)-avg) * contrast)  + value );
-                    }
-                }
                 else {
                     contrastValue *= 0.5;
                     contrast = (100.0+contrastValue/2)/100.0;
-                    for(int i = 0; i < imageSize; i ++){
-                        *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value);
-                    }
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)-avg) *contrast  + value );
                 }
                 ADFilter(copyImg, adfValue);
                 image = prevImg;
@@ -366,9 +263,7 @@ void PanoValueAdjustment::set3x3MaskValue(){
     double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
                             {1/9.0, 1/9.0, 1/9.0},
                             {1/9.0, 1/9.0, 1/9.0}};
-    //    double kernel[3][3] = { {-1, -1, -1},         //라플라시안 필터를 이용한 mask 값
-    //                           {-1, 9, -1},
-    //                           {-1, -1, -1}};
+
     int arr[9] = {0};
 
 
@@ -514,7 +409,6 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
 
     QImage image;
     image = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
-
     image = image.convertToFormat(QImage::Format_Grayscale8).copy();
 
     unsigned char *histoInimg;
@@ -557,7 +451,6 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)  // 평탄화
     image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);
-
 }
 
 
@@ -807,6 +700,7 @@ void PanoValueAdjustment::highPassFFT(int cutoff) {
     FourierProcessing fourier(dentalViewWidth, dentalViewHeight, inimg);
     fourier.highFrequencyPass(fftImg, cutoff);
     currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8).copy();
+
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
     emit panoImgSend(fourierPixmap);
@@ -825,7 +719,6 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap){
 
     QImage presetImg;
     presetImg = prePixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
-
     currentImg = presetImg.convertToFormat(QImage::Format_Grayscale8).copy();
 
     inimg = currentImg.bits();
