@@ -44,7 +44,10 @@ PanoramaForm::~PanoramaForm()
 {
     delete ui;
 }
-/* type이 panorama 인 DB load하는 슬롯 */
+
+/* type이 panorama 인 DB load하는 슬롯
+ * @param DB의 panorama raw파일 경로
+ */
 void PanoramaForm::loadDB_Data(QString panoPath){
     if(panoPath == "")return;
 
@@ -174,8 +177,9 @@ void PanoramaForm::on_filePushButton_clicked()
     for(int i = 0; i <= 100; i ++)
         ui->panoProgressBar->setValue(i);
 }
-
-/* panoramaForm ui의 밝기 값을 처리하는 슬롯 */
+/* panoramaForm ui의 밝기 값을 처리하는 슬롯
+ * @param panoramaForm의 slider 밝기 값
+ */
 void PanoramaForm::on_brightSlider_valueChanged(int brightValue)
 {
     if(defaultPixmap.isNull())  return; //이미지가 load되지 않은 경우 예외 처리
@@ -212,7 +216,9 @@ void PanoramaForm::on_brightPlusButton_clicked()
     ui->brightSlider->setValue(brightValue);
     ui->brightLineEdit->setText( QString::number(brightValue) );
 }
-/* panoramaForm ui의 대조 값을 처리하는 슬롯 */
+/* panoramaForm ui의 대조 값을 처리하는 슬롯
+ * @param panoramaForm의 slider 대조 값
+ */
 void PanoramaForm::on_contrastSlider_valueChanged(int contrastValue)
 {
     if(defaultPixmap.isNull())  return; //이미지가 load되지 않은 경우 예외 처리
@@ -249,7 +255,9 @@ void PanoramaForm::on_contrastPlusButton_clicked()
     ui->contrastLineEdit->setText( QString::number(contrastValue) );
 
 }
-/* panoramaForm ui의 선예도 값을 처리하는 슬롯 */
+/* panoramaForm ui의 선예도 값을 처리하는 슬롯
+ * @param panoramaForm의 slider 선예도 값
+ */
 void PanoramaForm::on_sbSlider_valueChanged(int sbValue)
 {
     if(defaultPixmap.isNull())  return;  //이미지가 load되지 않은 경우 예외 처리
@@ -287,7 +295,9 @@ void PanoramaForm::on_sharpenButton_clicked()
     ui->sbSlider->setValue(sbValue);
     ui->sbLineEdit->setText( QString::number(sbValue) );
 }
-/* panoramaForm ui의 감마 값을 처리하는 슬롯 */
+/* panoramaForm ui의 감마 값을 처리하는 슬롯
+ * @param panoramaForm의 slider 감마 값
+ */
 void PanoramaForm::on_gammaSlider_valueChanged(int gammaValue)
 {
     if(defaultPixmap.isNull())  return; //이미지가 load되지 않은 경우 예외 처리
@@ -322,7 +332,9 @@ void PanoramaForm::on_gammaPlusButton_clicked()
     ui->gammaSlider->setValue(gammaValue);
     ui->gammaLineEdit->setText( QString::number(gammaValue) );
 }
-/* panoramaForm ui의 deNoise를 처리하는 슬롯 */
+/* panoramaForm ui의 deNoise를 처리하는 슬롯
+ * @param panoramaForm의 slider deNoise 값
+ */
 void PanoramaForm::on_deNoiseSlider_valueChanged(int deNoiseValue)
 {
     if(defaultPixmap.isNull())  return; //이미지가 load되지 않은 경우 예외 처리
@@ -535,7 +547,9 @@ void PanoramaForm::on_resetButton_clicked()
     emit sendResetPano(pixmap); //reset 신호와 원본 이미지를 View로 전송, 시그널
     emit sendSetReset();        //panorama 연산 클래스로 리셋 시그널 전송
 }
-/* 연산클래스에서의 영상 연산 결과를 반환하는 슬롯 */
+/* panorama 연산클래스에서의 영상 연산 결과를 반환하는 슬롯
+ * @param panorama영상의 연산 결과
+ */
 void PanoramaForm::receieveImg(QPixmap& pixmap)
 {
     prevPixmap = pixmap;
@@ -546,7 +560,9 @@ void PanoramaForm::on_imageSaveButton_clicked()
 {
     emit savePanoSignal();  //저장버튼 클릭 시그널
 }
-/* View에서 후처리한 panorama 영상을 저장하는 슬롯*/
+/* View에서 후처리한 panorama 영상을 저장하는 슬롯
+ * @param View에서 후처리한 panorama Image
+ */
 void PanoramaForm::panoImageSave(QImage& saveimg)
 {
     if(defaultImg.isNull()) {
@@ -625,15 +641,23 @@ void PanoramaForm::on_filterPushButton_clicked()
     filterWidget->show();
 
 }
-/* filter 연산을 위해 panorama 연산 클래스로 시그널 전송하는 슬롯 */
+/* low-pass filter 연산을 위해 cephalo 연산 클래스로 시그널 전송하는 슬롯
+ * @parma 주파수 대역
+ */
 void PanoramaForm::sendFourierSignal(int cutoff)
 {
     emit sendCutOffValue(cutoff);
 }
+/* high-pass filter 연산을 위해 cephalo 연산 클래스로 시그널 전송하는 슬롯
+ * @parma 주파수 대역
+ */
 void PanoramaForm::send2FourierSignal(int cutoff)
 {
     emit send2CutOffValue(cutoff);
 }
+/* Median filter 연산을 위해 panorama 연산 클래스로 시그널 전송하는 슬롯
+ * @parma 체크박스의 파라미터 값
+ */
 void PanoramaForm::sendMedianSignal(int value)
 {
     emit sendMedianValue(value);
