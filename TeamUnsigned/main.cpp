@@ -18,9 +18,9 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
-    XrayDB d;
-    d.show();
+    /* DB 프로그램 동작 */
+    XrayDB xrayDB;
+    xrayDB.show();
 
     return a.exec();
 }

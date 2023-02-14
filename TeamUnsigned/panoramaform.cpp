@@ -105,7 +105,6 @@ void PanoramaForm::loadDB_Data(QString panoPath){
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
-
     /* prograssBar 설정 */
     for(int i = 0; i <= 100; i ++)
         ui->panoProgressBar->setValue(i);
@@ -114,7 +113,7 @@ void PanoramaForm::loadDB_Data(QString panoPath){
 void PanoramaForm::on_filePushButton_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(this, "Open file",
-                                                    "C:\\Users\\KOSA\\OneDrive\\바탕 화면\\PostData");
+                                                    "C:\\");
     QPixmap pixmap;
 
     if(filename.length()) {          // 파일이 존재한다면
@@ -395,6 +394,7 @@ void PanoramaForm::on_preset_Button1_clicked()
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
     ui->gammaSlider->setValue(0);
+
 }
 /* panoramaForm의 2번 프리셋을 처리하는 슬롯 */
 void PanoramaForm::on_preset_Button2_clicked()
@@ -632,9 +632,6 @@ void PanoramaForm::on_filterPushButton_clicked()
             this, SLOT(send2FourierSignal(int)));
     connect(filterWidget, SIGNAL(sendPanoMedian(int)),
             this, SLOT(sendMedianSignal(int)));
-
-    if (filterWidget->getTitle() == "Cephalo")
-        filterWidget->exit();
 
     filterWidget->setTitle("Panorama");
     filterWidget->panoReadSettings();

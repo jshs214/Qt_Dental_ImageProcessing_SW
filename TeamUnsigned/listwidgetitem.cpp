@@ -1,4 +1,4 @@
-#include "listwidget.h"
+#include "listwidgetitem.h"
 #include "ui_listwidget.h"
 
 #include "mainwindow.h"
@@ -15,8 +15,9 @@
  *  @param 성별에 따른 icon 경로
  *
 */
-ListWidget::ListWidget(int id, QString name, QString birthdate, QString directory,
-                       QString directory2, QString type, QString gender, QString path, QWidget *parent) :
+ListWidgetItem::ListWidgetItem(int id, QString name, QString birthdate,
+                               QString directory, QString directory2, QString type,
+                               QString gender, QString path, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ListWidget)
 {
@@ -33,40 +34,42 @@ ListWidget::ListWidget(int id, QString name, QString birthdate, QString director
     ui->pathLabel->setText(path);
     ui->genderLabel->setText(gender);
 
-    ui->idLabel->setText(i = QString::number(id));
+    ui->idLabel->setText(i = QString::number(id));      // label에 String 형태로 넣기 위한 형변환
     image = QPixmap(path);
     ui->imageLabel->setPixmap(image);
+
+
 }
-ListWidget::~ListWidget()
+ListWidgetItem::~ListWidgetItem()
 {
     delete ui;
 }
 /* 환자의 이름 반환 함수 */
-QString ListWidget::getName()
+QString ListWidgetItem::getName()
 {
     QString name;
     name = ui->nameLabel->text();
     return name;
 }
 /* 환자의 이름 setter */
-void ListWidget::setName(QString& name)
+void ListWidgetItem::setName(QString& name)
 {
     ui->nameLabel->setText(name);
 }
 /* 환자의 생일 반환 함수 */
-QString ListWidget::getBirthdate()
+QString ListWidgetItem::getBirthdate()
 {
     QString birthdate;
     birthdate = ui->birthDateLabel->text();
     return birthdate;
 }
 /* 환자의 생일 setter */
-void ListWidget::setBirthdate(QString& birthdate)
+void ListWidgetItem::setBirthdate(QString& birthdate)
 {
     ui->birthDateLabel->setText(birthdate);
 }
 /* cephalo raw file 경로 반환 함수 */
-QString ListWidget::getDirectory()
+QString ListWidgetItem::getDirectory()
 {
     QString directory;
     directory = ui->directoryLabel->text();
@@ -75,12 +78,12 @@ QString ListWidget::getDirectory()
 /* cephalo raw file 경로 setter
 * @param cephalo file path
 */
-void ListWidget::setDirectory(QString& directory)
+void ListWidgetItem::setDirectory(QString& directory)
 {
     ui->directoryLabel->setText(directory);
 }
 /* panorama raw file 경로 반환 함수 */
-QString ListWidget::getDirectory2()
+QString ListWidgetItem::getDirectory2()
 {
     QString directory2;
     directory2 = ui->directoryLabel_2->text();
@@ -89,12 +92,12 @@ QString ListWidget::getDirectory2()
 /* panorama raw file 경로 setter
 * @param panorama file path
 */
-void ListWidget::setDirectory2(QString& directory2)
+void ListWidgetItem::setDirectory2(QString& directory2)
 {
     ui->directoryLabel_2->setText(directory2);
 }
 /* type 반환 함수 */
-QString ListWidget::getType()
+QString ListWidgetItem::getType()
 {
     QString type;
     type = ui->typeLabel->text();
@@ -103,12 +106,12 @@ QString ListWidget::getType()
 /* type setter
 * @param type
 */
-void ListWidget::setType(QString& type)
+void ListWidgetItem::setType(QString& type)
 {
     ui->typeLabel->setText(type);
 }
 /* Icon path 반환 함수 */
-QString ListWidget::getImage()
+QString ListWidgetItem::getImage()
 {
     QString path;
 
@@ -119,12 +122,12 @@ QString ListWidget::getImage()
 /* Icon path setter
 * @param Icon Pixmap
 */
-void ListWidget::setImage(QPixmap& image)
+void ListWidgetItem::setImage(QPixmap& image)
 {
     ui->imageLabel->setPixmap(image);
 }
 /* gender 반환 함수 */
-QString ListWidget::getGender()
+QString ListWidgetItem::getGender()
 {
     QString gender;
 
@@ -135,17 +138,17 @@ QString ListWidget::getGender()
 /* gender setter
 * @param gender
 */
-void ListWidget::setGender(QString& gender)
+void ListWidgetItem::setGender(QString& gender)
 {
     ui->genderLabel->setText(gender);
 }
 /* id 반환 */
-int ListWidget::id()
+int ListWidgetItem::id()
 {
     return ui->idLabel->text().toInt();
 }
 /* type(Pano, Ceph)에 따른 후처리 뷰어 load 슬롯 */
-void ListWidget::on_loadPushButton_clicked()
+void ListWidgetItem::on_loadPushButton_clicked()
 {
     if(flag == true)    return;
 
@@ -177,8 +180,7 @@ void ListWidget::on_loadPushButton_clicked()
     flag = true;
 }
 /* 종료 신호 발생 시, delete MainWindow */
-void ListWidget::delMainWindow(){
+void ListWidgetItem::delMainWindow(){
     flag = false;
     delete unsignedViewer;
 }
-

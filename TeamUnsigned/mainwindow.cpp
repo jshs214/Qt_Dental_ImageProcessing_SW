@@ -139,12 +139,10 @@ MainWindow::MainWindow(QWidget *parent)
             this, SLOT(close()));
     connect(cephaloForm, SIGNAL(exitCephSignal()),
             this, SLOT(close()));
-
 }
-
+/* 메인 Form 소멸자에서 메모리 제거*/
 MainWindow::~MainWindow()
 {
-    qDebug()<<"Success Close MainWindow !!!";
     delete panoramaForm;
     delete cephaloForm;
     delete panoValueAdjustment;
@@ -152,7 +150,9 @@ MainWindow::~MainWindow()
     delete panoPreset;
     delete cephPreset;
     delete ui;
+    qDebug()<<"Success Close MainWindow !!!";
 }
+
 /* 메인 Form 종료 시, 종료 시그널 발생 */
 void MainWindow::closeEvent(QCloseEvent *event){
     Q_UNUSED(event);

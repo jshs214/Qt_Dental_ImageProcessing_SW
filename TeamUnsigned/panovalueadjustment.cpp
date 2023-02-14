@@ -10,7 +10,7 @@ PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
     : QObject{parent}
 {
 }
-/* 평균값 필터를 이용한 영상의 mask 값 연산 함수
+/* unsharp mask filter 적용을 위한 (원본 - 평균값) mask 값 연산 함수
  * 영상의 mask 값은 *mask에 저장
  */
 void PanoValueAdjustment::set3x3MaskValue()
@@ -18,130 +18,132 @@ void PanoValueAdjustment::set3x3MaskValue()
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(mask, 0, sizeof(unsigned char) * imageSize);
 
-    double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
-                            {1/9.0, 1/9.0, 1/9.0},
-                            {1/9.0, 1/9.0, 1/9.0}};
-
     int arr[9] = {0};
 
+    int x = 0, y = -1, cnt = 0;
+    for(int i = 0; i < imageSize; i ++) {
+        x = i % width;
+        if(i % width == 0) y++;
 
-    int widthCnt = 0, heightCnt = -1, cnt = 0;
-    for(int i = 0; i < imageSize; i ++){
-        widthCnt = i % width;
-        if(i % width == 0) heightCnt++;
-
-        if(widthCnt==0){
+        /* padding image 메모리 없이 지역 배열로 처리 */
+        if(x==0){
             //LeftUpVertex
-            if(heightCnt==0){
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1 + (heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+((heightCnt+1)*width) ];
+            if(y==0) {
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[x+(y*width) ];
+                arr[2] = arr[5] = inimg[x+1 + (y*width) ];
+                arr[6] = arr[7] = inimg[x+ ((y+1)*width) ];
+                arr[8] = inimg[x+1+((y+1)*width) ];
             }
             //LeftDownVertex
-            else if(heightCnt==height-1){
-                arr[0] = arr[1] =inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1 + ((heightCnt-1)*width) ];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[8] = arr[5] = inimg[widthCnt+1 + (heightCnt*width)  ];
+            else if(y==height-1) {
+                arr[0] = arr[1] =inimg[x+((y-1)*width) ];
+                arr[2] = inimg[x+1 + ((y-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[x+(y*width)  ];
+                arr[8] = arr[5] = inimg[x+1 + (y*width)  ];
             }
-            else{
-                arr[0] = arr[1] = inimg[widthCnt+( (heightCnt-1)*width)  ];
-                arr[2] = inimg[widthCnt+1+( (heightCnt-1)*width)  ];
-                arr[3] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = inimg[widthCnt+1+(heightCnt*width) ];
-                arr[6] = arr[7] = inimg[widthCnt+ ( (heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1+( (heightCnt+1)*width)  ];
+            else {
+                arr[0] = arr[1] = inimg[x+( (y-1)*width)  ];
+                arr[2] = inimg[x+1+( (y-1)*width)  ];
+                arr[3] = arr[4] = inimg[x+(y*width) ];
+                arr[5] = inimg[x+1+(y*width) ];
+                arr[6] = arr[7] = inimg[x+ ( (y+1)*width)  ];
+                arr[8] = inimg[x+1+( (y+1)*width)  ];
             }
 
+            //padding 경계를 인접 픽셀 값으로 대입
             cnt=0;
             float sum = 0.0;
-            for(int i = -1; i < 2; i++) {
-                for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*arr[cnt++];
-                }
+            for(int i = 0; i < 9; i++) {
+                    sum += (1/9.0)*arr[cnt++];
             }
+
+            /* outimg = 블러된 이미지
+             * inimg = 원본 이미지
+             * mask = 원본 이미지 - 블러된 이미지 */
             *(outimg + i) = LIMIT_UBYTE(sum);
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
         }
 
-        else if( widthCnt==(width*1 -1) ){
+        else if( x==(width*1 -1) ){
             //RightUpVertex
-            if(heightCnt==0){
-                arr[0] = arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[7] = arr[8] = inimg[widthCnt+((heightCnt+1)*width) ];
+            if(y==0){
+                arr[0] = arr[3] = inimg[x-1 + (y*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[x + (y*width)  ];
+                arr[6] = inimg[x-1 + ((y-1)*width)  ];
+                arr[7] = arr[8] = inimg[x+((y+1)*width) ];
             }
             //RightDownVertex
-            else if(heightCnt==height-1){
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[1] = arr[2] = inimg[widthCnt-1 +((heightCnt-1)*width)  ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt+(heightCnt*width) ];
+            else if(y==height-1){
+                arr[0] = inimg[x-1 + ((y-1)*width)  ];
+                arr[1] = arr[2] = inimg[x-1 +((y-1)*width)  ];
+                arr[3] = arr[6] = inimg[x-1+(y*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[x+(y*width) ];
             }
             else{
-                arr[0] = inimg[widthCnt-1 + ((heightCnt-1)*width)  ];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt-1)*width)  ];
-                arr[3] = inimg[widthCnt-1 + (heightCnt*width)  ];
-                arr[5] = arr[4] = inimg[widthCnt+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1 + ((heightCnt+1)*width)  ];
-                arr[8] = arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
+                arr[0] = inimg[x-1 + ((y-1)*width)  ];
+                arr[2] = arr[1] = inimg[x + ((y-1)*width)  ];
+                arr[3] = inimg[x-1 + (y*width)  ];
+                arr[5] = arr[4] = inimg[x+(y*width)  ];
+                arr[6] = inimg[x-1 + ((y+1)*width)  ];
+                arr[8] = arr[7] = inimg[x+((y+1)*width)  ];
             }
+
+            //padding 경계를 인접 픽셀 값으로 대입
             cnt=0;
             float sum = 0.0;
-            for(int i = -1; i < 2; i++) {
-                for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*arr[cnt++];
-                }
+            for(int i = 0; i < 9; i++) {
+                    sum += (1/9.0)*arr[cnt++];
             }
+            /* outimg = 블러된 이미지
+             * inimg = 원본 이미지
+             * mask = 원본 이미지 - 블러된 이미지 */
             *(outimg + i ) = LIMIT_UBYTE(sum);
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
-        else if(heightCnt==0){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
-                arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
-                arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
-                arr[6] = inimg[widthCnt-1+((heightCnt+1)*width)  ];
-                arr[7] = inimg[widthCnt+((heightCnt+1)*width)  ];
-                arr[8] = inimg[widthCnt+1 + ((heightCnt+1)*width)  ];
+        else if(y==0){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = arr[3] = inimg[x-1+(y*width)  ];
+                arr[1] = arr[4] = inimg[x+(y*width) ];
+                arr[2] = arr[5] = inimg[x+1+(y*width)  ];
+                arr[6] = inimg[x-1+((y+1)*width)  ];
+                arr[7] = inimg[x+((y+1)*width)  ];
+                arr[8] = inimg[x+1 + ((y+1)*width)  ];
 
+                //mask 출력
                 cnt=0;
                 float sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
+                for(int i = 0; i < 9; i++) {
+                        sum += (1/9.0)*arr[cnt++];
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
                 *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
             }
         }
-        else if( heightCnt ==(height -1) ){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
-                arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
-                arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
-                arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
-                arr[3] = arr[6] = inimg[widthCnt-1+(heightCnt*width) ];
-                arr[4] = arr[7] = inimg[widthCnt+(heightCnt*width) ];
-                arr[5] = arr[8] = inimg[widthCnt+1+(heightCnt*width) ];
+        else if( y ==(height -1) ){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = inimg[x-1+((y-1)*width) ];
+                arr[1] = inimg[x+((y-1)*width) ];
+                arr[2] = inimg[x+1+((y-1)*width) ];
+                arr[3] = arr[6] = inimg[x-1+(y*width) ];
+                arr[4] = arr[7] = inimg[x+(y*width) ];
+                arr[5] = arr[8] = inimg[x+1+(y*width) ];
+
+                //mask 출력
                 cnt=0;
                 float sum = 0.0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        sum += kernel[i+1][j+1]*arr[cnt++];
-                    }
+                for(int i = 0; i < 9; i++) {
+                        sum += (1/9.0)*arr[cnt++];
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
                 *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
             }
         }
         else{
+            //padding 부분 제외한 안쪽 영상 mask 출력
             float sum = 0.0;
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
-                    sum += kernel[i+1][j+1]*inimg[((widthCnt+i*1)+(heightCnt+j)*width) ];
+                    sum += (1/9.0)*inimg[((x+i*1)+(y+j)*width) ];
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
@@ -166,6 +168,9 @@ void PanoValueAdjustment::highBoost(unsigned char* in, int sbValue)
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 /* 가우시안 필터(블러) 함수
+ * 2차원 가우시안 함수 값을 이용하여 마스크를 생성, 입력 영상과 마스크 연산을 수행
+ * x 방향과 y 방향으로의 1차원 마스크 연산을 각각 수행
+ *
  * @param 연산할 이미지의 픽셀 데이터
  * @param sigma 값
  * 함수 호출 후 연산 결과는 prevImg에 저장
@@ -174,26 +179,31 @@ void PanoValueAdjustment::gaussian(unsigned char* in, float sigma)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
+    //연산을 위한 임시 이미지 배열
     float* pBuf;
     pBuf = (float*)malloc(sizeof(float) * width * height);
 
     int i, j, k, x;
 
-    int dim = static_cast<int>(2 * 4 * sigma + 1.0);
+    int dim = static_cast<int>(2 * 4 * sigma + 1.0);    //마스크 크기
 
-    if (dim < 3) dim = 3;
-    if (dim % 2 == 0) dim++;
+    if (dim < 3) dim = 3;                               //최소 마스크 크기 계산(3x3)
+    if (dim % 2 == 0) dim++;                            //마스크 크기는 홀수
     int dim2 = dim / 2;
 
+    //1차원 가우시안 마스크 생성
     float* pMask = new float[dim];
 
     for (i = 0; i < dim; i++) {
+        //x 값의 범위는 -4 * sigma부터 +4 * sigma까지
         x = i - dim2;
+        //평균이 0이고, 표준 편차가 sigma인 1차원 가우시안 분포의 함수 식 표현
         pMask[i] = exp(-(x*x) / (2 * sigma * sigma)) / (sqrt(2 * PI) * sigma);
     }
 
     float sum1, sum2;
 
+    //세로 방향 마스크 연산
     for (i = 0; i < width; i++) {
         for (j = 0; j < height; j++) {
 
@@ -209,7 +219,7 @@ void PanoValueAdjustment::gaussian(unsigned char* in, float sigma)
             pBuf[j+ i*height] = sum2 / sum1;
         }
     }
-
+    //가로 방향 마스크 연산
     for (j = 0; j < height; j++) {
         for (i = 0; i < width; i++) {
             sum1 = sum2 = 0.f;
@@ -231,48 +241,52 @@ void PanoValueAdjustment::gaussian(unsigned char* in, float sigma)
     delete[] pMask;
 }
 /* 비등방성 확산 필터(DeNoise) 함수
- * @param 연산할 이미지의 픽셀 데이터
- * @param 반복 수
+ * 상하 좌우 대칭의 형태를 갖는 필터 마스크를 사용하는 필터를 등방성 필터
+ *
+ * @param 비등방성 필터 반복 수
  * 함수 호출 후 연산 결과는 prevImg에 저장
 */
 void PanoValueAdjustment::ADFilter(unsigned char * inimg, int iter)
-{    //deNoising , 다른 연산 수행 함수
+{
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    float lambda = 0.25;
-    float k = 4;
+    float lambda = 0.25;        //픽셀 값의 변화량을 결정짓는 상수
+    float k = 4;                //실험 상수
 
-    auto copy(inimg);
+    auto copy = (inimg);        //연산이 반복된 이미지를 복사해서 사용
+
+    int i;
+    float gradn= 0.0, grads= 0.0, grade=0.0, gradw=0.0;     //네 방향 1차 미분 값
+    float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;               //네 방향 전달 계수
+    float pow2k = k * k;
 
     /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
-    int i;
-    float gradn=0.0, grads=0.0, grade=0.0, gradw=0.0;
-    float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;
-    float k2 = k * k;
-
     for (i = 0; i < iter; i++)
     {
-        int widthCnt = 0, heightCnt = -1;
+        int x = 0, y = -1;
         for (int i = 0; i < imageSize; i += 1) {
-            widthCnt = i % width;
-            if(i % width == 0) heightCnt++;
+            x = i % width;
+            if(i % width == 0) y++;
 
-            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
-            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
+            /* 네 방향에 대한 1차 미분 값 */
+            gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+            grads = copy[(y + 1) * width + x] - copy[y * width + x];
+            grade = copy[y * width + (x-1)] - copy[y * width + x];
+            gradw = copy[y * width + (x+1)] - copy[y * width + x];
 
-            gcn = gradn / (1.0f + gradn * gradn / k2);
-            gcs = grads / (1.0f + grads * grads / k2);
-            gce = grade / (1.0f + grade * grade / k2);
-            gcw = gradw / (1.0f + gradw * gradw / k2);
+            /* 전달 계수 구하기 */
+            gcn = gradn / (1.0f + gradn * gradn / pow2k);
+            gcs = grads / (1.0f + grads * grads / pow2k);
+            gce = grade / (1.0f + grade * grade / pow2k);
+            gcw = gradw / (1.0f + gradw * gradw / pow2k);
 
-            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
+            //비등방성 확산 수식 = 현재 위치의 픽셀 값 + lambda * 네 방향 전달 계수
+            outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gcs + gce + gcw);
         }
         if (i < iter - 1)
             std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
     }
-
+    //iter만큼 반복 후 이미지 저장
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
@@ -292,8 +306,7 @@ void PanoValueAdjustment::insertion(ushort a[], int n)
 }
 
 /* 영상 load 시 연산 클래스 메모리 할당 및 설정
- * @param panoramaForm 에서 Load 하거나
- *        DB에서 load 한 pano 이미지 Pixmap
+ * @param panoramaForm 에서 Load 하거나 DB에서 load 한 영상 Pixmap
  */
 void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
 {
@@ -302,10 +315,11 @@ void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
     //defaultImg 저장.
     defaultImg = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
 
+    //연산을 위한 QImage 저장
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
 
+    //QImage를 배열로 복사
     inimg = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
-
     inimg = image.bits();
 
     width = image.width();
@@ -328,7 +342,7 @@ void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth * dentalViewHeight);
     memset(medianFilterImg, 0, sizeof(unsigned char) * imageSize);
 
-    set3x3MaskValue();  // 영상의 Mask 값 구함
+    set3x3MaskValue();
 
     /* 영상의 평균 value를 저장하기 위한 연산 */
     for(int i = 0; i < imageSize; i ++){
@@ -353,7 +367,7 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap)
  * @param 밝기 값
  * @param 대조 값
  * @param 선예도
- * @param deNoising
+ * @param 비등방성 필터 반복 수
  * @param 감마 값
  */
 void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, int sbValue,
@@ -533,7 +547,7 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);   //후처리 연산 결과를 panoramaForm으로 시그널 전송
 
-    //현재 연상중인 이미지 저장
+    //현재 연산중인 이미지 저장
     calcImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();      //연산 결과 이미지 저장
 }
 
@@ -544,10 +558,12 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
+    //현재 View의 QPixmap -> QImage 변환
     QImage image;
     image = pixmap.scaled(dentalViewWidth, dentalViewHeight).toImage();
     image = image.convertToFormat(QImage::Format_Grayscale8).copy();
 
+    //QImage -> 배열로 복사
     unsigned char *histoInimg;
     histoInimg = image.bits();
 
@@ -559,24 +575,25 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
     int value,k;
     float constant;
 
+    /* 히스토그램 배열 초기화 */
     for(int i = 0; i < 256; i ++) {
         histo[i] =0;
         sum_of_h[i] = 0;
     }
-
-    for (int i = 0; i < imageSize; i++) {   //histogram 분포
+    /* 히스토그램 분포 저장 */
+    for (int i = 0; i < imageSize; i++) {
         value = histoInimg[i];
         histo[value] += 1;
         outimg[i] = value;
     }
-
-    //histogram
+    /* 히스토그램 누적 합 계산 */
     for (int i = 0, sum = 0; i < 256; i++){
         sum += histo[i];
         sum_of_h[i] = sum;
     }
 
-    /* constant = new # of gray levels div by area */
+    /* 히스토그램 평활화를 위한 정규화 계수
+     * constant = ( max gray value x 이미지 사이즈)  */
     constant = (float)(256) / (float)(height * width);
     for (int i = 0; i < imageSize; i++) {
         k = outimg[i];
@@ -587,6 +604,7 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
 
     image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
+
     emit panoImgSend(pixmap);   //평탄화 연산 결과를 panoramaForm으로 시그널 전송
 }
 /* 리셋 버튼 클릭 시, 초기 설정 슬롯 */
@@ -611,104 +629,104 @@ void PanoValueAdjustment::median(int value)
 
     int imageSize = width * height;
     int rowSize = width;
-    int widthCnt = 0, heightCnt = -1;
+    int x = 0, y = -1;
     int cnt = 0;
 
     ushort arr[9] = { 0, };
 
     for (int i = 0; i < imageSize; i++) {
-        widthCnt = i % width;
-        if (i % width == 0) heightCnt++;
+        x = i % width;
+        if (i % width == 0) y++;
 
-        if (widthCnt == 0) {
+        if (x == 0) {
             //좌측 상단 Vertex
-            if (heightCnt == 0) {
-                arr[0] = arr[1] = arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[2] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
+            if (y == 0) {
+                arr[0] = arr[1] = arr[3] = arr[4] = inimg[x + (y * rowSize)];
+                arr[2] = arr[5] = inimg[x + 1 + (y * rowSize)];
+                arr[6] = arr[7] = inimg[x + ((y + 1) * rowSize)];
+                arr[8] = inimg[x + 1 + ((y + 1) * rowSize)];
             }
             //좌측 하단 Vertex
-            else if (heightCnt == height - 1) {
-                arr[0] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = arr[7] = arr[4] = inimg[widthCnt + ((heightCnt * rowSize))];
-                arr[8] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
+            else if (y == height - 1) {
+                arr[0] = arr[1] = inimg[x + ((y - 1) * rowSize)];
+                arr[2] = inimg[x + 1 + ((y - 1) * rowSize)];
+                arr[3] = arr[6] = arr[7] = arr[4] = inimg[x + ((y * rowSize))];
+                arr[8] = arr[5] = inimg[x + 1 + (y * rowSize)];
             }
             else {
-                arr[0] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
+                arr[0] = arr[1] = inimg[x + ((y - 1) * rowSize)];
+                arr[2] = inimg[x + 1 + ((y - 1) * rowSize)];
+                arr[3] = arr[4] = inimg[x + (y * rowSize)];
+                arr[5] = inimg[x + 1 + (y * rowSize)];
+                arr[6] = arr[7] = inimg[x + ((y + 1) * rowSize)];
+                arr[8] = inimg[x + 1 + ((y + 1) * rowSize)];
             }
 
             insertion(arr, 9);
-            medianFilterImg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            medianFilterImg[(x + y * rowSize)] = arr[4];
         }
-        else if (widthCnt == (rowSize - 1)) {
+        else if (x == (rowSize - 1)) {
             //우측 상단 Vertex
-            if (heightCnt == 0) {
-                arr[0] = arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[1] = arr[2] = arr[5] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[7] = arr[8] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
+            if (y == 0) {
+                arr[0] = arr[3] = inimg[x - 1 + (y * rowSize)];
+                arr[1] = arr[2] = arr[5] = arr[4] = inimg[x + (y * rowSize)];
+                arr[6] = inimg[x - 1 + ((y - 1) * rowSize)];
+                arr[7] = arr[8] = inimg[x + ((y + 1) * rowSize)];
             }
             //우측 하단 Vertex
-            else if (heightCnt == height - 1) {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[1] = arr[2] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[4] = arr[5] = arr[7] = arr[8] = inimg[widthCnt + (heightCnt * rowSize)];
+            else if (y == height - 1) {
+                arr[0] = inimg[x - 1 + ((y - 1) * rowSize)];
+                arr[1] = arr[2] = inimg[x - 1 + ((y - 1) * rowSize)];
+                arr[3] = arr[6] = inimg[x - 1 + (y * rowSize)];
+                arr[4] = arr[5] = arr[7] = arr[8] = inimg[x + (y * rowSize)];
             }
             else {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[2] = arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[5] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt + 1) * rowSize)];
-                arr[8] = arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
+                arr[0] = inimg[x - 1 + ((y - 1) * rowSize)];
+                arr[2] = arr[1] = inimg[x + ((y - 1) * rowSize)];
+                arr[3] = inimg[x - 1 + (y * rowSize)];
+                arr[5] = arr[4] = inimg[x + (y * rowSize)];
+                arr[6] = inimg[x - 1 + ((y + 1) * rowSize)];
+                arr[8] = arr[7] = inimg[x + ((y + 1) * rowSize)];
             }
 
             insertion(arr, 9);
-            medianFilterImg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            medianFilterImg[(x + y * rowSize)] = arr[4];
         }
-        else if (heightCnt == 0) {
-            if (widthCnt != 1 && widthCnt != rowSize - 1) {
-                arr[0] = arr[3] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[1] = arr[4] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[2] = arr[5] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
-                arr[6] = inimg[widthCnt - 1 + ((heightCnt + 1) * rowSize)];
-                arr[7] = inimg[widthCnt + ((heightCnt + 1) * rowSize)];
-                arr[8] = inimg[widthCnt + 1 + ((heightCnt + 1) * rowSize)];
+        else if (y == 0) {
+            if (x != 1 && x != rowSize - 1) {
+                arr[0] = arr[3] = inimg[x - 1 + (y * rowSize)];
+                arr[1] = arr[4] = inimg[x + (y * rowSize)];
+                arr[2] = arr[5] = inimg[x + 1 + (y * rowSize)];
+                arr[6] = inimg[x - 1 + ((y + 1) * rowSize)];
+                arr[7] = inimg[x + ((y + 1) * rowSize)];
+                arr[8] = inimg[x + 1 + ((y + 1) * rowSize)];
             }
 
             insertion(arr, 9);
-            medianFilterImg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            medianFilterImg[(x + y * rowSize)] = arr[4];
         }
-        else if (heightCnt == (height - 1)) {
-            if (widthCnt != 1 && widthCnt != rowSize - 1) {
-                arr[0] = inimg[widthCnt - 1 + ((heightCnt - 1) * rowSize)];
-                arr[1] = inimg[widthCnt + ((heightCnt - 1) * rowSize)];
-                arr[2] = inimg[widthCnt + 1 + ((heightCnt - 1) * rowSize)];
-                arr[3] = arr[6] = inimg[widthCnt - 1 + (heightCnt * rowSize)];
-                arr[4] = arr[7] = inimg[widthCnt + (heightCnt * rowSize)];
-                arr[5] = arr[8] = inimg[widthCnt + 1 + (heightCnt * rowSize)];
+        else if (y == (height - 1)) {
+            if (x != 1 && x != rowSize - 1) {
+                arr[0] = inimg[x - 1 + ((y - 1) * rowSize)];
+                arr[1] = inimg[x + ((y - 1) * rowSize)];
+                arr[2] = inimg[x + 1 + ((y - 1) * rowSize)];
+                arr[3] = arr[6] = inimg[x - 1 + (y * rowSize)];
+                arr[4] = arr[7] = inimg[x + (y * rowSize)];
+                arr[5] = arr[8] = inimg[x + 1 + (y * rowSize)];
             }
 
             insertion(arr, 9);
-            medianFilterImg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            medianFilterImg[(x + y * rowSize)] = arr[4];
         }
         else {
             cnt = 0;
             for (int i = -1; i < 2; i++) {
                 for (int j = -1; j < 2; j++) {
-                    arr[cnt++] = inimg[((widthCnt + i) + (heightCnt + j) * width)];
+                    arr[cnt++] = inimg[((x + i) + (y + j) * width)];
                 }
             }
             insertion(arr, 9);
-            medianFilterImg[(widthCnt + heightCnt * rowSize)] = arr[4];
+            medianFilterImg[(x + y * rowSize)] = arr[4];
         }
     }
     QPixmap medianPixmap;
@@ -722,48 +740,61 @@ void PanoValueAdjustment::median(int value)
     emit exitFilterSignal();        //필터 연산 후 panoramaForm으로 시그널 전송
 }
 
-/* low-pass filter 연산 슬롯
+/* 주파수 내 저역 가우시안 필터링 적용 함수
  * @param 저역 통과 대역 설정 (filterButton에서 입력한 값)
  */
 void PanoValueAdjustment::lowPassFFT(int cutoff)
 {
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
 
+    /* 이미 밝기, 대조, 선예도, 감마, 노이즈 제거 연산이 되어있을 경우
+     * 연산된 이미지 사용 */
     if(calcImg.isNull() != 1) inimg = calcImg.bits();
 
+    /* 푸리에 변환을 위한 객체 생성 */
     FourierProcessing fourier(dentalViewWidth, dentalViewHeight, inimg);
+
+    //가우시안 필터링 적용
     fourier.lowPassGaussian(fftImg, cutoff);
     currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8).copy();
+
+    //필터링 적용한 이미지 전달
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
-    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
 
     inimg = currentImg.bits();
+    fourier.deleteMemory();             //메모리 제거
 
-    fourier.deleteMemory();
+    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
     emit exitFilterSignal();            //필터 연산 후 panoramaForm으로 시그널 전송
 }
 
-/* high-pass filter 연산 슬롯
+/* 주파수 내 고역 가우시안 필터링 적용 함수
  * @param 고역 통과 대역 설정 (filterButton에서 입력한 값)
  */
 void PanoValueAdjustment::highPassFFT(int cutoff)
 {
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
 
+    /* 이미 밝기, 대조, 선예도, 감마, 노이즈 제거 연산이 되어있을 경우
+     * 연산된 이미지 사용 */
     if(calcImg.isNull() != 1) inimg = calcImg.bits();
 
+    /* 푸리에 변환을 위한 객체 생성 */
     FourierProcessing fourier(dentalViewWidth, dentalViewHeight, inimg);
+
+    //가우시안 필터링 적용
     fourier.highFrequencyPass(fftImg, cutoff);
     currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8).copy();
 
+    //필터링 적용한 이미지 전달
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
-    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
 
     inimg = currentImg.bits();
-
     fourier.deleteMemory();
+
+    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
     emit exitFilterSignal();            //필터 연산 후 panoramaForm으로 시그널 전송
 }
 

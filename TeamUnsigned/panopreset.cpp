@@ -25,11 +25,8 @@ void PanoPreset::setPreset_1()
 
     int sbValue = 3;
     int contrastValue = 20;
-
-    double gammaValue = 0.6;
-
     float contrast;
-    contrast = (100.0+contrastValue/2)/100.0;
+    double gammaValue = 0.6;
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );

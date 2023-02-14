@@ -1,5 +1,5 @@
-#ifndef LISTWIDGET_H
-#define LISTWIDGET_H
+#ifndef LISTWIDGETITEM_H
+#define LISTWIDGETITEM_H
 
 #include "mainwindow.h"
 #include <QWidget>
@@ -14,7 +14,7 @@ class CephaloForm;
 
 }
 /* XrayDB 클래스의 입력된 정보를 담고있는 ListWidget 클래스 */
-class ListWidget : public QWidget
+class ListWidgetItem : public QWidget
 {
     Q_OBJECT
 
@@ -30,10 +30,10 @@ public:
     *  @param 성별에 따른 icon 경로
     *
    */
-    explicit ListWidget(int id, QString name, QString birthdate,
-                        QString directory, QString directory2, QString type,
-                        QString gender, QString path,QWidget *parent = nullptr);
-    ~ListWidget();
+    explicit ListWidgetItem(int id, QString name, QString birthdate,
+                            QString directory, QString directory2, QString type,
+                            QString gender, QString path,QWidget *parent = nullptr);
+    ~ListWidgetItem();
 
     QString getName() ;              //환자의 이름 반환
     void setName(QString&);          //환자의 이름이 수정 되었다면 바뀐 값으로 set
@@ -76,4 +76,4 @@ private:
     QFile* panoFile;                    //panorama에 대한 파일 객체
 };
 
-#endif // LISTWIDGET_H
+#endif // LISTWIDGETITEM_H

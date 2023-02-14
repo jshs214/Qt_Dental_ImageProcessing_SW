@@ -112,7 +112,7 @@ void CephaloForm::loadDB_Data(QString cephPath){
 void CephaloForm::on_filePushButton_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(this, "Open file",
-                                                    "C:\\Users\\KOSA\\OneDrive\\바탕 화면\\PostData");
+                                                    "C:\\");
 
     QPixmap pixmap;
 
@@ -181,7 +181,6 @@ void CephaloForm::on_filePushButton_clicked()
  */
 void CephaloForm::on_brightSlider_valueChanged(int brightValue)
 {
-    QPixmap pixmap;
 
     if(defaultPixmap.isNull())  return; //이미지가 load되지 않은 경우 예외 처리
 
@@ -629,9 +628,6 @@ void CephaloForm::on_filterPushButton_clicked()
             this, SLOT(send2FourierSignal(int)));
     connect(filterWidget, SIGNAL(sendCephMedian(int)),
             this, SLOT(sendMedianSignal(int)));
-
-    if (filterWidget->getTitle() == "Panorama")
-        filterWidget->exit();
 
     filterWidget->setTitle("Cephalo");
     filterWidget->cephReadSettings();

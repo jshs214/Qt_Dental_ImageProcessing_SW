@@ -17,7 +17,7 @@ SOURCES += \
     filterbuttonform.cpp \
     fourierprocessing.cpp \
     histogram.cpp \
-    listwidget.cpp \
+    listwidgetitem.cpp \
     main.cpp \
     mainwindow.cpp \
     panopreset.cpp \
@@ -34,7 +34,7 @@ HEADERS += \
     filterbuttonform.h \
     fourierprocessing.h \
     histogram.h \
-    listwidget.h \
+    listwidgetitem.h \
     mainwindow.h \
     panopreset.h \
     panoramaform.h \
@@ -44,7 +44,7 @@ HEADERS += \
 FORMS += \
     cephaloform.ui \
     filterbuttonform.ui \
-    listwidget.ui \
+    listwidgetitem.ui \
     mainwindow.ui \
     panoramaform.ui \
     xraydb.ui
