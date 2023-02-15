@@ -8,8 +8,6 @@
 #include "panopreset.h"
 #include "cephpreset.h"
 
-#include <QFile>
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -17,6 +15,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     setWindowTitle("Unsigned Viewer");
+
+    connect(this, SIGNAL(destroyed(QObject*)),
+            this, SLOT(deleteLater()));
 
     /* Panorama, Cephalo Form의 객체 선언 */
     panoramaForm = new PanoramaForm(this);
@@ -139,10 +140,13 @@ MainWindow::MainWindow(QWidget *parent)
             this, SLOT(close()));
     connect(cephaloForm, SIGNAL(exitCephSignal()),
             this, SLOT(close()));
+
 }
-/* 메인 Form 소멸자에서 메모리 제거*/
+
 MainWindow::~MainWindow()
 {
+
+    qDebug()<<"Success Close MainWindow !!!";
     delete panoramaForm;
     delete cephaloForm;
     delete panoValueAdjustment;
@@ -150,14 +154,11 @@ MainWindow::~MainWindow()
     delete panoPreset;
     delete cephPreset;
     delete ui;
-    qDebug()<<"Success Close MainWindow !!!";
 }
-
 /* 메인 Form 종료 시, 종료 시그널 발생 */
 void MainWindow::closeEvent(QCloseEvent *event){
     Q_UNUSED(event);
-    QFile::remove("./FilterFormCeph.ini");
-    QFile::remove("./FilterFormPano.ini");
+
     emit closeMainWindow();
 }
 /* panorama 툴버튼 클릭 시, panoramaForm load 및 ui 설정 변경 */
@@ -191,6 +192,8 @@ void MainWindow::setReceiveMainWindow(QString type, QString cephPath, QString pa
         ui->cephToolButton->setStyleSheet("background-color: rgb(35, 190, 212);"
                                           "color: rgb(255, 255, 255);");
     }
+
+
     emit loadPanoDB(panoPath);
     emit loadCephDB(cephPath);
 }

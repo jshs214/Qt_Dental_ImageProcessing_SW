@@ -10,7 +10,7 @@ PanoValueAdjustment::PanoValueAdjustment(QObject *parent)
     : QObject{parent}
 {
 }
-/* unsharp mask filter 적용을 위한 (원본 - 평균값) mask 값 연산 함수
+/* 평균값 필터를 이용한 영상의 mask 값 연산 함수
  * 영상의 mask 값은 *mask에 저장
  */
 void PanoValueAdjustment::set3x3MaskValue()
@@ -18,30 +18,34 @@ void PanoValueAdjustment::set3x3MaskValue()
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
     memset(mask, 0, sizeof(unsigned char) * imageSize);
 
+    double kernel[3][3] = { {1/9.0, 1/9.0, 1/9.0},  //평균값 필터를 이용한 mask 값
+                            {1/9.0, 1/9.0, 1/9.0},
+                            {1/9.0, 1/9.0, 1/9.0}};
+
     int arr[9] = {0};
 
+
     int x = 0, y = -1, cnt = 0;
-    for(int i = 0; i < imageSize; i ++) {
+    for(int i = 0; i < imageSize; i ++){
         x = i % width;
         if(i % width == 0) y++;
 
-        /* padding image 메모리 없이 지역 배열로 처리 */
         if(x==0){
             //LeftUpVertex
-            if(y==0) {
+            if(y==0){
                 arr[0] = arr[1] = arr[3] = arr[4] = inimg[x+(y*width) ];
                 arr[2] = arr[5] = inimg[x+1 + (y*width) ];
-                arr[6] = arr[7] = inimg[x+ ((y+1)*width) ];
+                arr[6] = arr[7] = inimg[x+ ((y+1)*width)  ];
                 arr[8] = inimg[x+1+((y+1)*width) ];
             }
             //LeftDownVertex
-            else if(y==height-1) {
+            else if(y==height-1){
                 arr[0] = arr[1] =inimg[x+((y-1)*width) ];
                 arr[2] = inimg[x+1 + ((y-1)*width) ];
                 arr[3] = arr[6] = arr[7] = arr[4] = inimg[x+(y*width)  ];
                 arr[8] = arr[5] = inimg[x+1 + (y*width)  ];
             }
-            else {
+            else{
                 arr[0] = arr[1] = inimg[x+( (y-1)*width)  ];
                 arr[2] = inimg[x+1+( (y-1)*width)  ];
                 arr[3] = arr[4] = inimg[x+(y*width) ];
@@ -50,16 +54,13 @@ void PanoValueAdjustment::set3x3MaskValue()
                 arr[8] = inimg[x+1+( (y+1)*width)  ];
             }
 
-            //padding 경계를 인접 픽셀 값으로 대입
             cnt=0;
             float sum = 0.0;
-            for(int i = 0; i < 9; i++) {
-                    sum += (1/9.0)*arr[cnt++];
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
             }
-
-            /* outimg = 블러된 이미지
-             * inimg = 원본 이미지
-             * mask = 원본 이미지 - 블러된 이미지 */
             *(outimg + i) = LIMIT_UBYTE(sum);
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i));
         }
@@ -87,16 +88,13 @@ void PanoValueAdjustment::set3x3MaskValue()
                 arr[6] = inimg[x-1 + ((y+1)*width)  ];
                 arr[8] = arr[7] = inimg[x+((y+1)*width)  ];
             }
-
-            //padding 경계를 인접 픽셀 값으로 대입
             cnt=0;
             float sum = 0.0;
-            for(int i = 0; i < 9; i++) {
-                    sum += (1/9.0)*arr[cnt++];
+            for(int i = -1; i < 2; i++) {
+                for(int j = -1; j < 2; j++) {
+                    sum += kernel[i+1][j+1]*arr[cnt++];
+                }
             }
-            /* outimg = 블러된 이미지
-             * inimg = 원본 이미지
-             * mask = 원본 이미지 - 블러된 이미지 */
             *(outimg + i ) = LIMIT_UBYTE(sum);
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
@@ -109,11 +107,12 @@ void PanoValueAdjustment::set3x3MaskValue()
                 arr[7] = inimg[x+((y+1)*width)  ];
                 arr[8] = inimg[x+1 + ((y+1)*width)  ];
 
-                //mask 출력
                 cnt=0;
                 float sum = 0.0;
-                for(int i = 0; i < 9; i++) {
-                        sum += (1/9.0)*arr[cnt++];
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
                 *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
@@ -127,29 +126,29 @@ void PanoValueAdjustment::set3x3MaskValue()
                 arr[3] = arr[6] = inimg[x-1+(y*width) ];
                 arr[4] = arr[7] = inimg[x+(y*width) ];
                 arr[5] = arr[8] = inimg[x+1+(y*width) ];
-
-                //mask 출력
                 cnt=0;
                 float sum = 0.0;
-                for(int i = 0; i < 9; i++) {
-                        sum += (1/9.0)*arr[cnt++];
+                for(int i = -1; i < 2; i++) {
+                    for(int j = -1; j < 2; j++) {
+                        sum += kernel[i+1][j+1]*arr[cnt++];
+                    }
                 }
                 *(outimg + i ) = LIMIT_UBYTE(sum);
                 *(mask + i) =LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
             }
         }
         else{
-            //padding 부분 제외한 안쪽 영상 mask 출력
             float sum = 0.0;
             for(int i = -1; i < 2; i++) {
                 for(int j = -1; j < 2; j++) {
-                    sum += (1/9.0)*inimg[((x+i*1)+(y+j)*width) ];
+                    sum += kernel[i+1][j+1]*inimg[((x+i*1)+(y+j)*width) ];
                 }
             }
             *(outimg + i) = LIMIT_UBYTE(sum);
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
     }
+
 }
 /* 하이부스트 필터(선예도) 함수
  * @param 연산할 이미지의 픽셀 데이터
@@ -179,7 +178,6 @@ void PanoValueAdjustment::gaussian(unsigned char* in, float sigma)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    //연산을 위한 임시 이미지 배열
     float* pBuf;
     pBuf = (float*)malloc(sizeof(float) * width * height);
 
@@ -243,50 +241,158 @@ void PanoValueAdjustment::gaussian(unsigned char* in, float sigma)
 /* 비등방성 확산 필터(DeNoise) 함수
  * 상하 좌우 대칭의 형태를 갖는 필터 마스크를 사용하는 필터를 등방성 필터
  *
+ * @param 연산할 이미지의 픽셀 데이터
  * @param 비등방성 필터 반복 수
  * 함수 호출 후 연산 결과는 prevImg에 저장
 */
-void PanoValueAdjustment::ADFilter(unsigned char * inimg, int iter)
-{
+void PanoValueAdjustment::ADFilter(unsigned char * in, int iter)
+{    //deNoising , 다른 연산 수행 함수
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    float lambda = 0.25;        //픽셀 값의 변화량을 결정짓는 상수
-    float k = 4;                //실험 상수
-
-    auto copy = (inimg);        //연산이 반복된 이미지를 복사해서 사용
+    unsigned char * copy;
+    copy = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memcpy(copy, in, sizeof(unsigned char) * imageSize);
 
     int i;
-    float gradn= 0.0, grads= 0.0, grade=0.0, gradw=0.0;     //네 방향 1차 미분 값
-    float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;               //네 방향 전달 계수
-    float pow2k = k * k;
+    float gradn=0.0, grads=0.0, grade=0.0, gradw=0.0;
+    float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;
+    float lambda = 0.25;
+    float k = 4;
+    float k2 = k * k;
 
     /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
     for (i = 0; i < iter; i++)
     {
         int x = 0, y = -1;
-        for (int i = 0; i < imageSize; i += 1) {
-            x = i % width;
-            if(i % width == 0) y++;
+        for (int j = 0; j < imageSize; j += 1) {
+            x = j % width;
+            if(j % width == 0) y++;
 
-            /* 네 방향에 대한 1차 미분 값 */
-            gradn = copy[(y - 1) * width + x] - copy[y * width + x];
-            grads = copy[(y + 1) * width + x] - copy[y * width + x];
-            grade = copy[y * width + (x-1)] - copy[y * width + x];
-            gradw = copy[y * width + (x+1)] - copy[y * width + x];
+            if(y == 0) {
+                //(0,0)
+                if(x == 0) {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
 
-            /* 전달 계수 구하기 */
-            gcn = gradn / (1.0f + gradn * gradn / pow2k);
-            gcs = grads / (1.0f + grads * grads / pow2k);
-            gce = grade / (1.0f + grade * grade / pow2k);
-            gcw = gradw / (1.0f + gradw * gradw / pow2k);
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
 
-            //비등방성 확산 수식 = 현재 위치의 픽셀 값 + lambda * 네 방향 전달 계수
-            outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gcs + gce + gcw);
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcs + gcw);
+                }
+                //(width,0)
+                else if(x == width -1) {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcs + gce);
+                }
+                //(x,0)
+                else {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcs + gce + gcw);
+                }
+            }
+
+            else if(y == height - 1) {
+                //(0, height)
+                if(x == 0) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gcw);
+                }
+                //(width, height)
+                else if (x == width - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gce);
+                }
+                //(x, height)
+                else {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gce + gcw);
+                }
+            }
+
+            else if(x == 0) {
+                //(0, y)
+                if(0 < y && y < height - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gcs + gcw);
+                }
+            }
+
+            else if(x == width - 1) {
+                //(width, y)
+                if(0 < y && y < height - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gcs + gce);
+                }
+            }
+
+            else {
+                //비등방성 확산 필터 수식(안쪽)
+                gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                grade = copy[y * width + (x-1)] - copy[y * width + x];
+                gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                gcn = gradn / (1.0f + gradn * gradn / k2);
+                gcs = grads / (1.0f + grads * grads / k2);
+                gce = grade / (1.0f + grade * grade / k2);
+                gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                outimg[y * width + x] = copy[y * width + x]
+                        + lambda * (gcn + gcs + gce + gcw);
+            }
+
         }
         if (i < iter - 1)
-            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
+            memcpy(copy, outimg, sizeof(unsigned char) * width * height);
     }
-    //iter만큼 반복 후 이미지 저장
+    free(copy);
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
 
@@ -306,7 +412,7 @@ void PanoValueAdjustment::insertion(ushort a[], int n)
 }
 
 /* 영상 load 시 연산 클래스 메모리 할당 및 설정
- * @param panoramaForm 에서 Load 하거나 DB에서 load 한 영상 Pixmap
+ * @param cephaloForm 에서 Load 하거나 DB에서 load 한 영상 Pixmap
  */
 void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
 {
@@ -342,7 +448,7 @@ void PanoValueAdjustment::receiveFile(QPixmap& roadPixmap)
     memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth * dentalViewHeight);
     memset(medianFilterImg, 0, sizeof(unsigned char) * imageSize);
 
-    set3x3MaskValue();
+    set3x3MaskValue();  // 영상의 Mask 값 구함
 
     /* 영상의 평균 value를 저장하기 위한 연산 */
     for(int i = 0; i < imageSize; i ++){
@@ -367,7 +473,7 @@ void PanoValueAdjustment::receiveSetPresetImg(QPixmap& prePixmap)
  * @param 밝기 값
  * @param 대조 값
  * @param 선예도
- * @param 비등방성 필터 반복 수
+ * @param deNoising
  * @param 감마 값
  */
 void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, int sbValue,
@@ -378,7 +484,17 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     float gamma;
     float contrast;
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(gammaImg, 0, sizeof(unsigned char) * imageSize);
 
+    if(brightValue == 0 && contrastValue == 0 && sbValue == 0  && gammaValue !=0 && deNoiseValue != 0){
+        gamma = 1.0 + gammaValue*0.02;
+
+        for(int i = 0; i < imageSize; i ++){
+            *(gammaImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
+        }
+        ADFilter(gammaImg, deNoiseValue * 2);
+        image = prevImg;
+    }
     /* 밝기값만 조정되는 case */
     if(contrastValue == 0 && sbValue == 0 && deNoiseValue == 0 && gammaValue ==0){
         int value =  brightValue / 2.5;
@@ -414,8 +530,8 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
     /* DeNoising 만 조정되는 case */
     if(brightValue == 0 && contrastValue == 0 && sbValue == 0 && gammaValue ==0) {
         int adfValue = 2 * deNoiseValue;
-
-        ADFilter(inimg, adfValue);
+        if(inimg != nullptr)
+            ADFilter(inimg, adfValue);
 
         image = prevImg;
     }
@@ -435,7 +551,116 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
         }
     }
     /* 두 값 이상 조정되는 case */
-    else{
+    if(brightValue != 0) {
+        int value =  brightValue / 2.5;
+        if(deNoiseValue == 0){  // deNoising이 조정되지 않을 경우
+            if(gammaValue ==0){
+                for(int i = 0; i < imageSize; i ++){
+                    *(gammaImg + i) = *(inimg + i);
+                }
+            }
+            else{   //gammaValue가 0이 아닌 경우
+                gamma = 1.0 + gammaValue*0.02;
+                for(int i = 0; i < imageSize; i ++){
+                    *(gammaImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
+                }
+            }
+            if(sbValue != 0){   // unsharp이 조정된 경우
+                if(sbValue < 0)
+                    gaussian(gammaImg, (float)sbValue*(-0.5));
+                else if(sbValue > 0)
+                    highBoost(gammaImg, sbValue);
+
+                image = prevImg;
+                sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
+                if (contrastValue > 0)
+                    contrast = (100.0+contrastValue/2)/100.0;
+                else if(contrastValue == 0)
+                    contrast = 1;
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(outimg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                }
+            }
+            else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
+                if (contrastValue > 0){
+                    contrast = (100.0+contrastValue/2)/100.0;
+                }
+                else if(contrastValue == 0) {
+                    contrast = 1;
+                }
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(outimg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)- avg) *contrast  + value );
+                }
+
+            }
+        }
+        else { //deNoising 이 조정 된 경우
+
+            int adfValue = 2 * deNoiseValue;
+
+            if(gammaValue ==0){
+                for(int i = 0; i < imageSize; i ++){
+                    *(gammaImg + i) = *(inimg + i);
+                }
+            }
+            else{   //gammaValue가 0이 아닌 경우
+                gamma = 1.0 + gammaValue*0.02;
+
+                for(int i = 0; i < imageSize; i ++){
+                    *(gammaImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gamma )) * 255 + 0.f   );
+                }
+            }
+
+            if(sbValue != 0){   // unsharp이 조정된 경우
+                if(sbValue < 0)
+                    gaussian(gammaImg, (float)sbValue*(-0.5));
+                else if(sbValue > 0)
+                    highBoost(gammaImg, sbValue);
+
+                image = prevImg;
+                sharpenImg = image.bits();  //sharpen한 연산 후 bright, contrast 연산.
+                if (contrastValue > 0)
+                    contrast = (100.0+contrastValue/2)/100.0;
+                else if(contrastValue == 0)
+                    contrast = 1;
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(copyImg + i) = LIMIT_UBYTE( (avg + (*(sharpenImg+i)-avg) * contrast)  + value );
+                }
+
+                ADFilter(copyImg, adfValue);
+                image = prevImg;
+            }
+            else if(sbValue == 0){ // unsharp이 조정되지 않은 경우
+                if (contrastValue > 0)
+                    contrast = (100.0+contrastValue/2)/100.0;
+                else if(contrastValue == 0)
+                    contrast = 1;
+                else {
+                    contrastValue *= 0.5;
+                    contrast = (100.0+contrastValue/2)/100.0;
+                }
+                for(int i = 0; i < imageSize; i ++){
+                    *(copyImg + i) = LIMIT_UBYTE( avg + (*(gammaImg+i)-avg) *contrast  + value );
+                }
+                ADFilter(copyImg, adfValue);
+                image = prevImg;
+            }
+        }
+    }
+
+    else {
         int value =  brightValue / 2.5;
         if(deNoiseValue == 0){  // deNoising이 조정되지 않을 경우
             if(gammaValue ==0){
@@ -542,12 +767,11 @@ void PanoValueAdjustment::changePanoValue(int brightValue, int contrastValue, in
             }
         }
     }
-
     image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
     emit panoImgSend(pixmap);   //후처리 연산 결과를 panoramaForm으로 시그널 전송
 
-    //현재 연산중인 이미지 저장
+    //현재 연상중인 이미지 저장
     calcImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();      //연산 결과 이미지 저장
 }
 
@@ -581,7 +805,7 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
         sum_of_h[i] = 0;
     }
     /* 히스토그램 분포 저장 */
-    for (int i = 0; i < imageSize; i++) {
+    for (int i = 0; i < imageSize; i++) {   //histogram 분포
         value = histoInimg[i];
         histo[value] += 1;
         outimg[i] = value;
@@ -604,7 +828,6 @@ void PanoValueAdjustment::receivePrev(QPixmap& pixmap)
 
     image = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
     pixmap = pixmap.fromImage(image);
-
     emit panoImgSend(pixmap);   //평탄화 연산 결과를 panoramaForm으로 시그널 전송
 }
 /* 리셋 버튼 클릭 시, 초기 설정 슬롯 */
@@ -761,11 +984,11 @@ void PanoValueAdjustment::lowPassFFT(int cutoff)
     //필터링 적용한 이미지 전달
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
+    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
 
     inimg = currentImg.bits();
-    fourier.deleteMemory();             //메모리 제거
 
-    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
+    fourier.deleteMemory();             //메모리 제거
     emit exitFilterSignal();            //필터 연산 후 panoramaForm으로 시그널 전송
 }
 
@@ -790,11 +1013,11 @@ void PanoValueAdjustment::highPassFFT(int cutoff)
     //필터링 적용한 이미지 전달
     QPixmap fourierPixmap;
     fourierPixmap = pixmap.fromImage(currentImg);
+    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
 
     inimg = currentImg.bits();
-    fourier.deleteMemory();
 
-    emit panoImgSend(fourierPixmap);    //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
+    fourier.deleteMemory();             //메모리 제거
     emit exitFilterSignal();            //필터 연산 후 panoramaForm으로 시그널 전송
 }
 

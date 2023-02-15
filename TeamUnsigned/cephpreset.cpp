@@ -366,43 +366,44 @@ unsigned char* CephPreset::highBoost(unsigned char* in, int sbValue)
  * @param 반복 수
  * @return 비등방성 확산 필터 연산 결과
 */
-unsigned char* CephPreset::ADFilter(unsigned char* inimg ,int iter)
+unsigned char* CephPreset::ADFilter(unsigned char* in ,int iter)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
     float lambda = 0.25;
     float k = 4;
 
-    auto copy(inimg);
+    unsigned char *copy;
+    copy = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memcpy(copy, in, sizeof(unsigned char)*imageSize);
 
     /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
-    int i;
     float gradn = 0.0, grads = 0.0, grade = 0.0, gradw = 0.0;
     float gcn = 0.0, gcs = 0.0, gce = 0.0, gcw = 0.0;
     float k2 = k * k;
 
-    for (i = 0; i < iter; i++)
+    for (int j = 0; j < iter; j++)
     {
-        int widthCnt = 0, heightCnt = -1;
-        for (int i = 0; i < imageSize; i += 1) {
-            widthCnt = i % width;
-            if(i % width == 0) heightCnt++;
+        for(int y = 1; y < height-1; y ++){
+            for(int x = 1; x < width-1; x ++){
+                gradn = copy[(y - 1) * width + x] - copy[x+y*width];
+                grads = copy[(y + 1) * width + x] - copy[x+y*width];
+                grade = copy[y * width + (x-1)] - copy[x+y*width];
+                gradw = copy[y * width + (x+1)] - copy[x+y*width];
 
-            gradn = copy[(heightCnt - 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grads = copy[(heightCnt + 1) * width + widthCnt] - copy[heightCnt * width + widthCnt];
-            grade = copy[heightCnt * width + (widthCnt-1)] - copy[heightCnt * width + widthCnt];
-            gradw = copy[heightCnt * width + (widthCnt+1)] - copy[heightCnt * width + widthCnt];
+                gcn = gradn / (1.0f + gradn * gradn / k2);
+                gcs = grads / (1.0f + grads * grads / k2);
+                gce = grade / (1.0f + grade * grade / k2);
+                gcw = gradw / (1.0f + gradw * gradw / k2);
 
-            gcn = gradn / (1.0f + gradn * gradn / k2);
-            gcs = grads / (1.0f + grads * grads / k2);
-            gce = grade / (1.0f + grade * grade / k2);
-            gcw = gradw / (1.0f + gradw * gradw / k2);
-
-            outimg[heightCnt * width + widthCnt] = copy[heightCnt * width + widthCnt] + lambda * (gcn + gcs + gce + gcw);
+                outimg[x+y*width] = copy[x+y*width] + lambda * (gcn + gcs + gce + gcw);
+            }
         }
-        if (i < iter - 1)
-            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
+        if (j < iter - 1){
+            memcpy(copy, outimg, sizeof(unsigned char) * width * height);
+        }
     }
+    free(copy);
 
     return outimg;
 }

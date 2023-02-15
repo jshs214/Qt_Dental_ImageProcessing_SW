@@ -14,7 +14,7 @@
 class QMenu;
 class QSqlDatabase;
 class QSqlTableModel;
-class ListWidgetItem;
+class ListWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class XrayDB; }
@@ -42,10 +42,10 @@ private:
     QButtonGroup *type;         //type의 ButtonGroup 객체
     QButtonGroup *gender;       //gender의 ButtonGroup 객체
     QPixmap *image;             //load 할 icon 객체
-    ListWidgetItem *listWidgetItem;     //ListWidget Class의 객체
+    ListWidget *listWidget;     //ListWidget Class의 객체
 
     QFile* file;
-    QMap<int, ListWidgetItem*> dbList;  //DB 정보를 담고있는 QMap
+    QMap<int, ListWidget*> dbList;  //DB 정보를 담고있는 QMap
     QSqlTableModel* patientModel;   //DB 정보를 담고있는 QSqlTableModel
 private slots:
     void on_addPushButton_clicked();            //정보를 추가 시 QMap과 DB에 추가하는 슬롯

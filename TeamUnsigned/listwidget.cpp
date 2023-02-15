@@ -166,19 +166,24 @@ void ListWidget::on_loadPushButton_clicked()
     panoFile = new QFile(directory2);
 
     unsignedViewer = new MainWindow();
+
     connect(this, SIGNAL(setLoadMainWindow(QString, QString, QString) ),
             unsignedViewer, SLOT(setReceiveMainWindow(QString, QString, QString) ));
+
     unsignedViewer->show();
 
     emit setLoadMainWindow(type, cephFile->fileName(), panoFile->fileName());   // type, Ceph, pano Path 전송 시그널, type에 따라 초기화면 결정
 
     connect(unsignedViewer, SIGNAL(closeMainWindow( ) ),
             this, SLOT(delMainWindow() ));
+
     flag = true;
 }
 /* 종료 신호 발생 시, delete MainWindow */
 void ListWidget::delMainWindow(){
     flag = false;
-    delete unsignedViewer;
+    if(unsignedViewer != nullptr){
+        delete unsignedViewer;
+    }
 }
 

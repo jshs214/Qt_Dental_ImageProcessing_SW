@@ -44,7 +44,7 @@ private:
 
 signals:
     void cephImgSend(QPixmap&);                     //후처리 연산 영상 결과를 panoramaForm으로 시그널 전송
-    void exitFilterSignal();                        //slider 초기화를 위한 시그널
+    void exitFilterSignal();                        //필터 연산 후 panoramaForm으로 시그널 전송
 
 private slots:
     void receiveFile(QPixmap&);                     //영상 load 시 연산 클래스 메모리 할당 및 설정
