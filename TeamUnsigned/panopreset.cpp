@@ -412,40 +412,150 @@ unsigned char* PanoPreset::ADFilter(unsigned char* in ,int iter)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
+    unsigned char * copy;
+    copy = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
+    memcpy(copy, in, sizeof(unsigned char) * imageSize);
+
+    int i;
+    float gradn=0.0, grads=0.0, grade=0.0, gradw=0.0;
+    float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;
     float lambda = 0.25;
     float k = 4;
-
-    unsigned char *copy;
-    copy = (unsigned char*)malloc(sizeof(unsigned char) * imageSize);
-    memcpy(copy, in, sizeof(unsigned char)*imageSize);
-
-    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
-    float gradn = 0.0, grads = 0.0, grade = 0.0, gradw = 0.0;
-    float gcn = 0.0, gcs = 0.0, gce = 0.0, gcw = 0.0;
     float k2 = k * k;
 
-    for (int j = 0; j < iter; j++)
+    /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
+    for (i = 0; i < iter; i++)
     {
-        for(int y = 1; y < height-1; y ++){
-            for(int x = 1; x < width-1; x ++){
-                gradn = copy[(y - 1) * width + x] - copy[x+y*width];
-                grads = copy[(y + 1) * width + x] - copy[x+y*width];
-                grade = copy[y * width + (x-1)] - copy[x+y*width];
-                gradw = copy[y * width + (x+1)] - copy[x+y*width];
+        int x = 0, y = -1;
+        for (int j = 0; j < imageSize; j += 1) {
+            x = j % width;
+            if(j % width == 0) y++;
+
+            if(y == 0) {
+                //(0,0)
+                if(x == 0) {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcs + gcw);
+                }
+                //(width,0)
+                else if(x == width -1) {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcs + gce);
+                }
+                //(x,0)
+                else {
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcs + gce + gcw);
+                }
+            }
+
+            else if(y == height - 1) {
+                //(0, height)
+                if(x == 0) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gcw);
+                }
+                //(width, height)
+                else if (x == width - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x] + lambda * (gcn + gce);
+                }
+                //(x, height)
+                else {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gce + gcw);
+                }
+            }
+
+            else if(x == 0) {
+                //(0, y)
+                if(0 < y && y < height - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    gradw = copy[y * width + (x+1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gcw = gradw / (1.0f + gradw * gradw / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gcs + gcw);
+                }
+            }
+
+            else if(x == width - 1) {
+                //(width, y)
+                if(0 < y && y < height - 1) {
+                    gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                    grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                    grade = copy[y * width + (x-1)] - copy[y * width + x];
+
+                    gcn = gradn / (1.0f + gradn * gradn / k2);
+                    gcs = grads / (1.0f + grads * grads / k2);
+                    gce = grade / (1.0f + grade * grade / k2);
+
+                    outimg[y * width + x] = copy[y * width + x]
+                            + lambda * (gcn + gcs + gce);
+                }
+            }
+
+            else {
+                //비등방성 확산 필터 수식(안쪽)
+                gradn = copy[(y - 1) * width + x] - copy[y * width + x];
+                grads = copy[(y + 1) * width + x] - copy[y * width + x];
+                grade = copy[y * width + (x-1)] - copy[y * width + x];
+                gradw = copy[y * width + (x+1)] - copy[y * width + x];
 
                 gcn = gradn / (1.0f + gradn * gradn / k2);
                 gcs = grads / (1.0f + grads * grads / k2);
                 gce = grade / (1.0f + grade * grade / k2);
                 gcw = gradw / (1.0f + gradw * gradw / k2);
 
-                outimg[x+y*width] = copy[x+y*width] + lambda * (gcn + gcs + gce + gcw);
+                outimg[y * width + x] = copy[y * width + x]
+                        + lambda * (gcn + gcs + gce + gcw);
             }
         }
-        if (j < iter - 1){
-            memcpy(copy, outimg, sizeof(unsigned char) * width * height);
-        }
+        if (i < iter - 1)
+            std::memcpy((unsigned char*)copy, outimg, sizeof(unsigned char) * width * height);
     }
     free(copy);
+
     return outimg;
 }
 /* 저역통과 필터 함수

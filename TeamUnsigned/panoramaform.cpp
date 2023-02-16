@@ -172,6 +172,7 @@ void PanoramaForm::on_filePushButton_clicked()
     ui->contrastSlider->setValue(0);
     ui->sbSlider->setValue(0);
     ui->deNoiseSlider->setValue(0);
+    ui->gammaSlider->setValue(0);
 
     /* prograssBar 설정 */
     for(int i = 0; i <= 100; i ++)

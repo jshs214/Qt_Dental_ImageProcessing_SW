@@ -83,7 +83,6 @@ void CephImageView::mouseMoveEvent(QMouseEvent* event)
     if(m_scaleLabel.text() != "100.0%" && (pos-lastDragPos).x() <0 && (pos-lastDragPos).y() <0 &&
             (pos-lastDragPos).x() > limit.x() && (pos-lastDragPos).y() > limit.y()) {
         m_imageLabel->move(pos-lastDragPos);
-        qDebug()<< (pos-lastDragPos);
     }
 }
 /* StyleSheet 설정 함수 */
