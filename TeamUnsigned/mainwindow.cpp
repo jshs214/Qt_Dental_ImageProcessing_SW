@@ -145,7 +145,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-
     qDebug()<<"Success Close MainWindow !!!";
     delete panoramaForm;
     delete cephaloForm;

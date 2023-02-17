@@ -156,12 +156,102 @@ void PanoValueAdjustment::set3x3MaskValue()
  * 함수 호출 후 연산 결과는 prevImg에 저장
  */
 void PanoValueAdjustment::highBoost(unsigned char* in, int sbValue)
-{ //unsharp mask = 원본이미지 + mask 값
+{
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    int sharpen = sbValue * 2.5;
 
-    for (int i = 0; i < imageSize; i += 1) {
-        *(outimg + i) = LIMIT_UBYTE ( *(in + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
+    int arr[9];
+    int sum;
+    float alpha = sbValue*0.02;
+    int x = 0, y = -1;
+    for(int i = 0; i < imageSize; i ++){
+        x = i % width;
+        if(i % width == 0) y++;
+
+        if(x==0){
+            //LeftUpVertex
+            if(y==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = in[x+(y*width) ];
+                arr[2] = arr[5] = in[x+1 + (y*width) ];
+                arr[6] = arr[7] = in[x+ ((y+1)*width)  ];
+                arr[8] = in[x+1+((y+1)*width) ];
+            }
+            //LeftDownVertex
+            else if(y==height-1){
+                arr[0] = arr[1] =in[x+((y-1)*width) ];
+                arr[2] = in[x+1 + ((y-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = in[x+(y*width)  ];
+                arr[8] = arr[5] = in[x+1 + (y*width)  ];
+            }
+            else{
+                arr[0] = arr[1] = in[x+( (y-1)*width)  ];
+                arr[2] = in[x+1+( (y-1)*width)  ];
+                arr[3] = arr[4] = in[x+(y*width) ];
+                arr[5] = in[x+1+(y*width) ];
+                arr[6] = arr[7] = in[x+ ( (y+1)*width)  ];
+                arr[8] = in[x+1+( (y+1)*width)  ];
+            }
+
+            sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+            *(outimg + i ) = LIMIT_UBYTE(sum);
+        }
+
+        else if( x==(width*1 -1) ){
+            //RightUpVertex
+            if(y==0){
+                arr[0] = arr[3] = in[x-1 + (y*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = in[x + (y*width)  ];
+                arr[6] = in[x-1 + ((y-1)*width)  ];
+                arr[7] = arr[8] = in[x+((y+1)*width) ];
+            }
+            //RightDownVertex
+            else if(y==height-1){
+                arr[0] = in[x-1 + ((y-1)*width)  ];
+                arr[1] = arr[2] = in[x-1 +((y-1)*width)  ];
+                arr[3] = arr[6] = in[x-1+(y*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = in[x+(y*width) ];
+            }
+            else{
+                arr[0] = in[x-1 + ((y-1)*width)  ];
+                arr[2] = arr[1] = in[x + ((y-1)*width)  ];
+                arr[3] = in[x-1 + (y*width)  ];
+                arr[5] = arr[4] = in[x+(y*width)  ];
+                arr[6] = in[x-1 + ((y+1)*width)  ];
+                arr[8] = arr[7] = in[x+((y+1)*width)  ];
+            }
+            sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+            *(outimg + i ) = LIMIT_UBYTE(sum);
+        }
+        else if(y==0){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = arr[3] = in[x-1+(y*width)  ];
+                arr[1] = arr[4] = in[x+(y*width) ];
+                arr[2] = arr[5] = in[x+1+(y*width)  ];
+                arr[6] = in[x-1+((y+1)*width)  ];
+                arr[7] = in[x+((y+1)*width)  ];
+                arr[8] = in[x+1 + ((y+1)*width)  ];
+
+                sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else if( y ==(height -1) ){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = in[x-1+((y-1)*width) ];
+                arr[1] = in[x+((y-1)*width) ];
+                arr[2] = in[x+1+((y-1)*width) ];
+                arr[3] = arr[6] = in[x-1+(y*width) ];
+                arr[4] = arr[7] = in[x+(y*width) ];
+                arr[5] = arr[8] = in[x+1+(y*width) ];
+
+                sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else{
+            sum = (5  + alpha) *in[x+y*width] -
+                    in[(x-1)+y*width] - in[(x+1)+y*width] - in[x+(y+1)*width] - in[x+(y-1)*width];
+        outimg[x+y*width] = LIMIT_UBYTE(sum + 0.5f);
+        }
     }
 
     prevImg = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();

@@ -15,7 +15,7 @@
  *  @param 성별에 따른 icon 경로
  *
 */
-ListWidget::ListWidget(int id, QString name, QString birthdate, QString directory,
+ListWidget::ListWidget(int id, QString name, QString film, QString directory,
                        QString directory2, QString type, QString gender, QString path, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ListWidget)
@@ -26,7 +26,7 @@ ListWidget::ListWidget(int id, QString name, QString birthdate, QString director
 
     ui->setupUi(this);
     ui->nameLabel->setText(name);
-    ui->birthDateLabel->setText(birthdate);
+    ui->filmDateLabel->setText(film);
     ui->directoryLabel->setText(directory);
     ui->directoryLabel_2->setText(directory2);
     ui->typeLabel->setText(type);
@@ -54,16 +54,16 @@ void ListWidget::setName(QString& name)
     ui->nameLabel->setText(name);
 }
 /* 환자의 생일 반환 함수 */
-QString ListWidget::getBirthdate()
+QString ListWidget::getFilmDate()
 {
-    QString birthdate;
-    birthdate = ui->birthDateLabel->text();
-    return birthdate;
+    QString film;
+    film = ui->filmDateLabel->text();
+    return film;
 }
 /* 환자의 생일 setter */
-void ListWidget::setBirthdate(QString& birthdate)
+void ListWidget::setFilmdate(QString& film)
 {
-    ui->birthDateLabel->setText(birthdate);
+    ui->filmDateLabel->setText(film);
 }
 /* cephalo raw file 경로 반환 함수 */
 QString ListWidget::getDirectory()
@@ -166,24 +166,19 @@ void ListWidget::on_loadPushButton_clicked()
     panoFile = new QFile(directory2);
 
     unsignedViewer = new MainWindow();
-
     connect(this, SIGNAL(setLoadMainWindow(QString, QString, QString) ),
             unsignedViewer, SLOT(setReceiveMainWindow(QString, QString, QString) ));
-
     unsignedViewer->show();
 
     emit setLoadMainWindow(type, cephFile->fileName(), panoFile->fileName());   // type, Ceph, pano Path 전송 시그널, type에 따라 초기화면 결정
 
     connect(unsignedViewer, SIGNAL(closeMainWindow( ) ),
             this, SLOT(delMainWindow() ));
-
     flag = true;
 }
 /* 종료 신호 발생 시, delete MainWindow */
 void ListWidget::delMainWindow(){
     flag = false;
-    if(unsignedViewer != nullptr){
-        delete unsignedViewer;
-    }
+    delete unsignedViewer;
 }
 

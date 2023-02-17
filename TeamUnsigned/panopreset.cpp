@@ -1,5 +1,6 @@
 #include "panopreset.h"
 #include "fourierprocessing.h"
+#include "qdebug.h"
 
 #include <QImage>
 #include <QPixmap>
@@ -23,26 +24,13 @@ void PanoPreset::setPreset_1()
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int sbValue = 3;
-    int contrastValue = 20;
+    memcpy(copyImg2, highBoost(inimg, 1), sizeof(unsigned char)*imageSize);
 
-    double gammaValue = 0.6;
-
-    float contrast;
-    contrast = (100.0+contrastValue/2)/100.0;
+    int contrastValue = 80;
+    int contrast = (100.0+contrastValue/2)/100.0;
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
-    }
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
-
-    int brightValue = 20;
-    int bright = brightValue / 2.5;
-    contrastValue = -10;
-    contrast = (100.0+contrastValue/2)/100.0;
-
-    for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) + bright );
+        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) -40 );
     }
 
 
@@ -60,17 +48,10 @@ void PanoPreset::setPreset_2()
     memset(copyImg, 0, sizeof(unsigned char) * imageSize);
     memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
 
-    int brightValue = -20;
-    int bright = brightValue / 2.5;
-    double gammaValue = 0.6;
+    memcpy(copyImg2, highBoost(inimg, 1), sizeof(unsigned char) * imageSize);
 
     for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
-    }
-    memcpy(copyImg2, highBoost(copyImg, 3), sizeof(unsigned char) * imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(outimg + i) = LIMIT_UBYTE( *(copyImg2+i) + bright );
+        *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 1.4) -40 );
     }
 
     presetImg2 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
@@ -79,6 +60,57 @@ void PanoPreset::setPreset_2()
  * 프리셋 연산 결과를 PresetImg3에 저장
  */
 void PanoPreset::setPreset_3()
+{
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();       //inimg 초기화
+
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    memcpy(copyImg2, highBoost(inimg, 1), sizeof(unsigned char)*imageSize);
+
+    int contrastValue = 80;
+    int contrast = (100.0+contrastValue/2)/100.0;
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) -40 );
+    }
+
+    memcpy(outimg, highBoost(copyImg, 1), sizeof(unsigned char)*imageSize);
+
+    memcpy(copyImg2, highBoost(copyImg, 1), sizeof(unsigned char) * imageSize);
+    memcpy(outimg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+
+    presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+}
+/* 4번 프리셋 연산
+ * 프리셋 연산 결과를 PresetImg4에 저장
+ */
+void PanoPreset::setPreset_4()
+{
+    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
+    inimg = image.bits();       //inimg 초기화
+
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
+    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
+
+    memcpy(copyImg2, highBoost(inimg, 1), sizeof(unsigned char) * imageSize);
+
+    for(int i = 0; i < imageSize; i ++){
+        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 1.4) -40 );
+    }
+
+    memcpy(copyImg2, highBoost(copyImg, 1), sizeof(unsigned char) * imageSize);
+    memcpy(outimg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+
+    presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+}
+/* 5번 프리셋 연산
+ * 프리셋 연산 결과를 PresetImg5에 저장
+ */
+void PanoPreset::setPreset_5()
 {
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
@@ -102,7 +134,7 @@ void PanoPreset::setPreset_3()
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
     }
 
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)* imageSize);
+    memcpy(copyImg2, unsharpMask(copyImg, sbValue), sizeof(unsigned char)* imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
@@ -115,12 +147,13 @@ void PanoPreset::setPreset_3()
         *(outimg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f/ gammaValue )) * 255 + 0.f   );
     }
 
-    presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+    presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
+
 }
-/* 4번 프리셋 연산
- * 프리셋 연산 결과를 PresetImg4에 저장
+/* 6번 프리셋 연산
+ * 프리셋 연산 결과를 PresetImg6에 저장
  */
-void PanoPreset::setPreset_4()
+void PanoPreset::setPreset_6()
 {
     image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
     inimg = image.bits();       //inimg 초기화
@@ -143,106 +176,13 @@ void PanoPreset::setPreset_4()
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
     }
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
+    memcpy(copyImg2, unsharpMask(copyImg, sbValue), sizeof(unsigned char)*imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
 
     memcpy(outimg, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
-
-    presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
-}
-/* 5번 프리셋 연산
- * 프리셋 연산 결과를 PresetImg5에 저장
- */
-void PanoPreset::setPreset_5()
-{
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
-
-    int brightValue = 40;
-    int sbValue = 6;
-    int contrastValue = 70;
-    int deNoiseValue = 5;
-    double gammaValue = 1.0;
-
-    int bright = brightValue / 2.5;
-    int adfValue = 2 * deNoiseValue;
-    float contrast;
-    contrast = (100.0+contrastValue/2)/100.0;
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
-    }
-
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
-    }
-
-    memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
-
-    gammaValue = 0.8;
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
-    }
-
-    memcpy(copyImg2, lowPassFFT(copyImg, 150), sizeof(unsigned char)*imageSize);
-    memcpy(copyImg, highBoost(copyImg2, 6), sizeof(unsigned char)*imageSize);
-    memcpy(outimg, ADFilter(copyImg, 18), sizeof(unsigned char)*imageSize);
-
-    presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
-
-}
-/* 6번 프리셋 연산
- * 프리셋 연산 결과를 PresetImg6에 저장
- */
-void PanoPreset::setPreset_6()
-{
-    image = defaultImg.convertToFormat(QImage::Format_Grayscale8);
-    inimg = image.bits();       //inimg 초기화
-
-    memset(outimg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg, 0, sizeof(unsigned char) * imageSize);
-    memset(copyImg2, 0, sizeof(unsigned char) * imageSize);
-
-    int brightValue = 40;
-    int sbValue = 6;
-    int contrastValue = 70;
-    int deNoiseValue = 5;
-    double gammaValue = 0.6;
-
-    int bright = brightValue / 2.5;
-    int adfValue = 2 * deNoiseValue;
-    float contrast;
-    contrast = (100.0+contrastValue/2)/100.0;
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
-    }
-
-    memcpy(copyImg2, highBoost(copyImg, sbValue), sizeof(unsigned char)*imageSize);
-
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
-    }
-
-    memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)*imageSize);
-
-    gammaValue = 0.8;
-    for(int i = 0; i < imageSize; i ++){
-        *(copyImg + i) = LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / gammaValue )) * 255 + 0.f   );
-    }
-
-    memcpy(copyImg2, lowPassFFT(copyImg, 150), sizeof(unsigned char)*imageSize);
-    memcpy(copyImg, highBoost(copyImg2, 6), sizeof(unsigned char)*imageSize);
-    memcpy(outimg, ADFilter(copyImg, 18), sizeof(unsigned char)*imageSize);
 
     presetImg6 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -386,6 +326,19 @@ void PanoPreset::set3x3MaskValue()
     }
 
 }
+unsigned char* PanoPreset::unsharpMask(unsigned char* in, int sbValue)
+{
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
+
+    int sharpen = sbValue * 2.5;
+
+    for (int i = 0; i < imageSize; i += 1) {
+        *(outimg + i) = LIMIT_UBYTE ( *(in + i) + sharpen * *(mask + i) );
+    }
+
+    return outimg;
+}
+
 /* 하이부스트 필터(선예도) 함수
  * @param 연산할 이미지의 픽셀 데이터
  * @param unsharp Value
@@ -395,12 +348,100 @@ unsigned char* PanoPreset::highBoost(unsigned char* in, int sbValue)
 {
     memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    int sharpen = sbValue * 2.5;
+    int arr[9];
+    int sum;
+    float alpha = sbValue*0.03;
+    int x = 0, y = -1;
+    for(int i = 0; i < imageSize; i ++){
+        x = i % width;
+        if(i % width == 0) y++;
 
-    for (int i = 0; i < imageSize; i += 1) {
-        *(outimg + i) = LIMIT_UBYTE ( *(in + i) + sharpen * *(mask + i) );    //highBoost = 원본이미지 + k * mask 값
+        if(x==0){
+            //LeftUpVertex
+            if(y==0){
+                arr[0] = arr[1] = arr[3] = arr[4] = in[x+(y*width) ];
+                arr[2] = arr[5] = in[x+1 + (y*width) ];
+                arr[6] = arr[7] = in[x+ ((y+1)*width)  ];
+                arr[8] = in[x+1+((y+1)*width) ];
+            }
+            //LeftDownVertex
+            else if(y==height-1){
+                arr[0] = arr[1] =in[x+((y-1)*width) ];
+                arr[2] = in[x+1 + ((y-1)*width) ];
+                arr[3] = arr[6] = arr[7] = arr[4] = in[x+(y*width)  ];
+                arr[8] = arr[5] = in[x+1 + (y*width)  ];
+            }
+            else{
+                arr[0] = arr[1] = in[x+( (y-1)*width)  ];
+                arr[2] = in[x+1+( (y-1)*width)  ];
+                arr[3] = arr[4] = in[x+(y*width) ];
+                arr[5] = in[x+1+(y*width) ];
+                arr[6] = arr[7] = in[x+ ( (y+1)*width)  ];
+                arr[8] = in[x+1+( (y+1)*width)  ];
+            }
+
+            sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+            *(outimg + i ) = LIMIT_UBYTE(sum);
+        }
+
+        else if( x==(width*1 -1) ){
+            //RightUpVertex
+            if(y==0){
+                arr[0] = arr[3] = in[x-1 + (y*width)  ];
+                arr[1] = arr[2] = arr[5] = arr[4] = in[x + (y*width)  ];
+                arr[6] = in[x-1 + ((y-1)*width)  ];
+                arr[7] = arr[8] = in[x+((y+1)*width) ];
+            }
+            //RightDownVertex
+            else if(y==height-1){
+                arr[0] = in[x-1 + ((y-1)*width)  ];
+                arr[1] = arr[2] = in[x-1 +((y-1)*width)  ];
+                arr[3] = arr[6] = in[x-1+(y*width) ];
+                arr[4] = arr[5] = arr[7] = arr[8] = in[x+(y*width) ];
+            }
+            else{
+                arr[0] = in[x-1 + ((y-1)*width)  ];
+                arr[2] = arr[1] = in[x + ((y-1)*width)  ];
+                arr[3] = in[x-1 + (y*width)  ];
+                arr[5] = arr[4] = in[x+(y*width)  ];
+                arr[6] = in[x-1 + ((y+1)*width)  ];
+                arr[8] = arr[7] = in[x+((y+1)*width)  ];
+            }
+            sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+            *(outimg + i ) = LIMIT_UBYTE(sum);
+        }
+        else if(y==0){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = arr[3] = in[x-1+(y*width)  ];
+                arr[1] = arr[4] = in[x+(y*width) ];
+                arr[2] = arr[5] = in[x+1+(y*width)  ];
+                arr[6] = in[x-1+((y+1)*width)  ];
+                arr[7] = in[x+((y+1)*width)  ];
+                arr[8] = in[x+1 + ((y+1)*width)  ];
+
+                sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else if( y ==(height -1) ){
+            if( x!=1 && x!=width-1 ){
+                arr[0] = in[x-1+((y-1)*width) ];
+                arr[1] = in[x+((y-1)*width) ];
+                arr[2] = in[x+1+((y-1)*width) ];
+                arr[3] = arr[6] = in[x-1+(y*width) ];
+                arr[4] = arr[7] = in[x+(y*width) ];
+                arr[5] = arr[8] = in[x+1+(y*width) ];
+
+                sum = (5  + alpha) *arr[4] - arr[1] - arr[3] - arr[5] - arr[7];
+                *(outimg + i ) = LIMIT_UBYTE(sum);
+            }
+        }
+        else{
+            sum = (5  + alpha) *in[x+y*width] -
+                    in[(x-1)+y*width] - in[(x+1)+y*width] - in[x+(y+1)*width] - in[x+(y-1)*width];
+        outimg[x+y*width] = LIMIT_UBYTE(sum + 0.5f);
+        }
     }
-
     return outimg;
 }
 /* 비등방성 확산 필터(DeNoise) 함수
