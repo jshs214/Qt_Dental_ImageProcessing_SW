@@ -1,7 +1,5 @@
 #include "panopreset.h"
 #include "fourierprocessing.h"
-#include "qdebug.h"
-
 #include <QImage>
 #include <QPixmap>
 
@@ -32,7 +30,6 @@ void PanoPreset::setPreset_1()
     for(int i = 0; i < imageSize; i ++){
         *(outimg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) -40 );
     }
-
 
     presetImg1 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -77,10 +74,9 @@ void PanoPreset::setPreset_3()
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast) -40 );
     }
 
-    memcpy(outimg, highBoost(copyImg, 1), sizeof(unsigned char)*imageSize);
-
     memcpy(copyImg2, highBoost(copyImg, 1), sizeof(unsigned char) * imageSize);
-    memcpy(outimg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+    memcpy(copyImg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+    memcpy(outimg, gaussian(copyImg, 0.5), sizeof(unsigned char)*imageSize);
 
     presetImg3 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -103,7 +99,8 @@ void PanoPreset::setPreset_4()
     }
 
     memcpy(copyImg2, highBoost(copyImg, 1), sizeof(unsigned char) * imageSize);
-    memcpy(outimg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+    memcpy(copyImg, ADFilter(copyImg2, 15), sizeof(unsigned char)*imageSize);
+    memcpy(outimg, gaussian(copyImg, 0.5), sizeof(unsigned char)*imageSize);
 
     presetImg4 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -133,13 +130,11 @@ void PanoPreset::setPreset_5()
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( qPow(*(inimg + i) / 255.f , abs((50/21.0) - gammaValue )) * 255 + 0.f   );
     }
-
     memcpy(copyImg2, unsharpMask(copyImg, sbValue), sizeof(unsigned char)* imageSize);
 
     for(int i = 0; i < imageSize; i ++){
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * contrast)  + bright );
     }
-
     memcpy(copyImg2, ADFilter(copyImg, adfValue), sizeof(unsigned char)* imageSize);
 
     gammaValue = 1.2;
@@ -275,7 +270,7 @@ void PanoPreset::set3x3MaskValue()
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
+            if( widthCnt!=0 && widthCnt!=width-1 ){
                 arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
                 arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
                 arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
@@ -295,7 +290,7 @@ void PanoPreset::set3x3MaskValue()
             }
         }
         else if( heightCnt ==(height -1) ){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
+            if( widthCnt!=0 && widthCnt!=width-1 ){
                 arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
                 arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
                 arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
@@ -411,7 +406,7 @@ unsigned char* PanoPreset::highBoost(unsigned char* in, int sbValue)
             *(outimg + i ) = LIMIT_UBYTE(sum);
         }
         else if(y==0){
-            if( x!=1 && x!=width-1 ){
+            if( x!=0 && x!=width-1 ){
                 arr[0] = arr[3] = in[x-1+(y*width)  ];
                 arr[1] = arr[4] = in[x+(y*width) ];
                 arr[2] = arr[5] = in[x+1+(y*width)  ];
@@ -424,7 +419,7 @@ unsigned char* PanoPreset::highBoost(unsigned char* in, int sbValue)
             }
         }
         else if( y ==(height -1) ){
-            if( x!=1 && x!=width-1 ){
+            if( x!=0 && x!=width-1 ){
                 arr[0] = in[x-1+((y-1)*width) ];
                 arr[1] = in[x+((y-1)*width) ];
                 arr[2] = in[x+1+((y-1)*width) ];
@@ -460,9 +455,9 @@ unsigned char* PanoPreset::ADFilter(unsigned char* in ,int iter)
     int i;
     float gradn=0.0, grads=0.0, grade=0.0, gradw=0.0;
     float gcn=0.0, gcs=0.0, gce=0.0, gcw=0.0;
-    float lambda = 0.25;
-    float k = 4;
-    float k2 = k * k;
+    const float lambda = 0.25;
+    const float k = 4;
+    const float k2 = k * k;
 
     /* iter 횟수만큼 비등방성 확산 알고리즘 수행 */
     for (i = 0; i < iter; i++)
@@ -599,26 +594,79 @@ unsigned char* PanoPreset::ADFilter(unsigned char* in ,int iter)
 
     return outimg;
 }
-/* 저역통과 필터 함수
+
+/* 가우시안 필터(블러) 함수
+ * 2차원 가우시안 함수 값을 이용하여 마스크를 생성, 입력 영상과 마스크 연산을 수행
+ * x 방향과 y 방향으로의 1차원 마스크 연산을 각각 수행
+ *
  * @param 연산할 이미지의 픽셀 데이터
- * @param 주파수 대역
- * @return 저역 통과 필터 연산 결과
+ * @param sigma 값
+ * 함수 호출 후 연산 결과는 prevImg에 저장
  */
-unsigned char* PanoPreset::lowPassFFT(unsigned char* in, int cutoff)
+unsigned char* PanoPreset::gaussian(unsigned char* in, float sigma)
 {
-    memset(fftImg, 0, sizeof(unsigned char) * dentalViewWidth*dentalViewHeight);
+    memset(outimg, 0, sizeof(unsigned char) * imageSize);
 
-    QImage currentImg;
+    float* pBuf;
+    pBuf = (float*)malloc(sizeof(float) * width * height);
 
-    FourierProcessing fourier(dentalViewWidth, dentalViewHeight, in);
-    fourier.lowPassGaussian(fftImg, cutoff);
-    currentImg = QImage(fftImg, dentalViewWidth, dentalViewHeight, QImage::Format_Grayscale8);
+    int i, j, k, x;
 
-    QPixmap fourierPixmap;
-    fourierPixmap = pixmap.fromImage(currentImg);
-    fourier.deleteMemory();
+    int dim = static_cast<int>(2 * 4 * sigma + 1.0);    //마스크 크기
 
-    return currentImg.bits();
+    if (dim < 3) dim = 3;                               //최소 마스크 크기 계산(3x3)
+    if (dim % 2 == 0) dim++;                            //마스크 크기는 홀수
+    int dim2 = dim / 2;
+
+    //1차원 가우시안 마스크 생성
+    float* pMask = new float[dim];
+
+    for (i = 0; i < dim; i++) {
+        //x 값의 범위는 -4 * sigma부터 +4 * sigma까지
+        x = i - dim2;
+        //평균이 0이고, 표준 편차가 sigma인 1차원 가우시안 분포의 함수 식 표현
+        pMask[i] = exp(-(x*x) / (2 * sigma * sigma)) / (sqrt(2 * PI) * sigma);
+    }
+
+    float sum1, sum2;
+
+    //세로 방향 마스크 연산
+    for (i = 0; i < width; i++) {
+        for (j = 0; j < height; j++) {
+
+            sum1 = sum2 = 0.f;
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + j;
+                if (x>= 0 && x <height) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * in[x + i*height]);
+                }
+            }
+            pBuf[j+ i*height] = sum2 / sum1;
+        }
+    }
+    //가로 방향 마스크 연산
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < width; i++) {
+            sum1 = sum2 = 0.f;
+
+            for (k = 0; k < dim; k++) {
+
+                x = k - dim2 + i;
+                if ( x>= 0 && x < width) {
+                    sum1 += pMask[k];
+                    sum2 += (pMask[k] * pBuf[j*width + x]);
+                }
+            }
+            outimg[i + j * width] = sum2 / sum1;
+        }
+    }
+
+    free(pBuf);
+    delete[] pMask;
+
+    return outimg;
 }
 /* 영상 load 시, 영상 프리셋 연산 슬롯
  * @param panoramaForm 에서 Load 하거나

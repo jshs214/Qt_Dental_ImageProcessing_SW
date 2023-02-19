@@ -165,7 +165,8 @@ void CephPreset::setPreset_5()
         //*(copyImg + i) =  LIMIT_UBYTE( qPow(*(copyImg2 + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
     memcpy(copyImg, unsharpMask(copyImg2,4), sizeof(unsigned char)* imageSize);
-    memcpy(outimg, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
+    memcpy(copyImg2, ADFilter(copyImg, 6), sizeof(unsigned char)*imageSize);
+    memcpy(outimg, lowPassFFT(copyImg2, 220), sizeof(unsigned char)*imageSize);
 
     presetImg5 = QImage(outimg, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -217,6 +218,7 @@ void CephPreset::setPreset_6()
         *(copyImg + i) = LIMIT_UBYTE( (avg + (*(copyImg2+i)-avg) * 1.2) + 12 ); //밝기 및 대조 연산
         *(copyImg2 + i) =  LIMIT_UBYTE( qPow(*(copyImg + i) / 255.f , abs(1.f / 1.1 )) * 255 + 0.f   );
     }
+    memcpy(outimg, lowPassFFT(copyImg2, 220), sizeof(unsigned char)*imageSize);
 
     presetImg6 = QImage(copyImg2, width, height, QImage::Format_Grayscale8).copy();
 }
@@ -308,7 +310,7 @@ void CephPreset::set3x3MaskValue()
             *(mask + i) = LIMIT_UBYTE( *(inimg + i) - *(outimg + i) );
         }
         else if(heightCnt==0){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
+            if( widthCnt!=0 && widthCnt!=width-1 ){
                 arr[0] = arr[3] = inimg[widthCnt-1+(heightCnt*width)  ];
                 arr[1] = arr[4] = inimg[widthCnt+(heightCnt*width) ];
                 arr[2] = arr[5] = inimg[widthCnt+1+(heightCnt*width)  ];
@@ -328,7 +330,7 @@ void CephPreset::set3x3MaskValue()
             }
         }
         else if( heightCnt ==(height -1) ){
-            if( widthCnt!=1 && widthCnt!=width-1 ){
+            if( widthCnt!=0 && widthCnt!=width-1 ){
                 arr[0] = inimg[widthCnt-1+((heightCnt-1)*width) ];
                 arr[1] = inimg[widthCnt+((heightCnt-1)*width) ];
                 arr[2] = inimg[widthCnt+1+((heightCnt-1)*width) ];
@@ -448,7 +450,7 @@ unsigned char* CephPreset::highBoost(unsigned char* in, int sbValue)
             *(outimg + i ) = LIMIT_UBYTE(sum);
         }
         else if(y==0){
-            if( x!=1 && x!=width-1 ){
+            if( x!=0 && x!=width-1 ){
                 arr[0] = arr[3] = in[x-1+(y*width)  ];
                 arr[1] = arr[4] = in[x+(y*width) ];
                 arr[2] = arr[5] = in[x+1+(y*width)  ];
@@ -461,7 +463,7 @@ unsigned char* CephPreset::highBoost(unsigned char* in, int sbValue)
             }
         }
         else if( y ==(height -1) ){
-            if( x!=1 && x!=width-1 ){
+            if( x!=0 && x!=width-1 ){
                 arr[0] = in[x-1+((y-1)*width) ];
                 arr[1] = in[x+((y-1)*width) ];
                 arr[2] = in[x+1+((y-1)*width) ];
